@@ -45,8 +45,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Releases-nonmac
-          path: |
-            Release
+          path: Release
+          if-no-files-found: error
+          retention-days: 7
 
   build-mac:
     name: Build macOS (signed)
@@ -80,8 +81,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Releases-mac
-          path: |
-            Release
+          path: Release
+          if-no-files-found: error
+          retention-days: 7
 
   collect:
     name: Collect all artifacts
@@ -90,12 +92,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Releases-nonmac
+          pattern: Releases-*
           path: Release
-      - uses: actions/download-artifact@v4
-        with:
-          name: Releases-mac
-          path: Release
+          merge-multiple: true
       - uses: actions/upload-artifact@v4
         with:
           name: Releases
