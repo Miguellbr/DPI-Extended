@@ -40,6 +40,9 @@ namespace DirectPackageInstaller.Tasks
 
             try
             {
+                if (!await PKGStreamHost.EnsureStartedAsync(cancellationToken))
+                    return null;
+
                 var listUrl = $"{BaseUrl}/list?archive={Uri.EscapeDataString(archiveUrl)}";
                 using var response = await Client.GetAsync(listUrl, cancellationToken);
                 if (!response.IsSuccessStatusCode)
