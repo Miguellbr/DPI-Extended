@@ -51,6 +51,8 @@ fi
 
 mkdir -p "$OUT/PKGStream/node"
 cp "$NODE_BIN" "$OUT/PKGStream/node/$(basename "$NODE_BIN")"
+NODE_LICENSE="$(find "$WORK/extracted" -type f -iname "LICENSE*" | head -n 1)"
+[ -n "$NODE_LICENSE" ] && cp "$NODE_LICENSE" "$OUT/PKGStream/node/LICENSE.txt"
 chmod +x "$OUT/PKGStream/node/$(basename "$NODE_BIN")" 2>/dev/null || true
 
 if [ ! -d "$PKG/node_modules/@mary/rar" ]; then
