@@ -58,6 +58,10 @@ namespace DirectPackageInstaller.Views
 
         private DateTime LastTransferProgressUpdate = DateTime.MinValue;
 
+        private string? PKGStreamInstallUrl;
+
+        private string? PKGStreamArchiveUrl;
+
         public MainViewModel? Model => (MainViewModel?)DataContext;
         
         public MainView()
@@ -588,6 +592,26 @@ namespace DirectPackageInstaller.Views
 
                 PKGStream = sender as Stream;
 
+                bool LoadedFromPKGStream = false;
+
+                if (PKGStream is null && SourcePackage.IsValidURL())
+                {
+                    var RemoteEntry = ForcedSource is { Length: > 0 } ? ForcedSource : null;
+                    var RemotePKG = await PKGStreamClient.TryOpenAsync(SourcePackage, RemoteEntry);
+
+                    if (RemotePKG != null)
+                    {
+                        PKGStream = RemotePKG.Stream;
+                        PKGStreamInstallUrl = RemotePKG.StreamUrl;
+                        PKGStreamArchiveUrl = SourcePackage;
+                        Installer.EntryFileName = Path.GetFileName(RemotePKG.EntryName);
+                        InputType = Source.URL | Source.PKGStream;
+                        LoadedFromPKGStream = true;
+
+                        ListEntries(RemotePKG.Entries.Select(Path.GetFileName).ToArray());
+                    }
+                }
+
                 if (PKGStream is null)
                 {
                     if (SourcePackage.EndsWith(".json", StringComparison.InvariantCultureIgnoreCase))
@@ -651,6 +675,8 @@ namespace DirectPackageInstaller.Views
                     await MessageBox.ShowAsync("You're trying open a compressed file from a limited file hosting,\nMaybe the compressed file must be fully downloaded to open it.", "Bad File Hosting Service", MessageBoxButtons.OK, MessageBoxIcon.Stop);
 
                 ArchiveDataInfo? DataInfo = null;
+
+                if (!LoadedFromPKGStream)
                 switch (Common.DetectCompressionFormat(Magic))
                 {
                     case CompressionFormat.RAR:
@@ -961,7 +987,11 @@ namespace DirectPackageInstaller.Views
                     }
                 }
 
-                return await Installer.PushPackage(App.Config, InputType, PKGStream!, URL, CurrentDecompressor, CurrentDecompressorVolumes, SetStatus, () => Status.Text, Silent);
+                var InstallSource = InputType.HasFlag(Source.PKGStream)
+                    ? PKGStreamInstallUrl ?? URL
+                    : URL;
+
+                return await Installer.PushPackage(App.Config, InputType, PKGStream!, InstallSource, CurrentDecompressor, CurrentDecompressorVolumes, SetStatus, () => Status.Text, Silent);
             }
             catch
             {
@@ -982,6 +1012,12 @@ namespace DirectPackageInstaller.Views
             if (e != null)
             {
                 App.Callback(() => BtnInstallAllOnClick(sender, null));
+                return;
+            }
+
+            if (InputType.HasFlag(Source.PKGStream))
+            {
+                await Install(Model?.CurrentURL ?? tbURL.Text, false);
                 return;
             }
 
@@ -1120,6 +1156,12 @@ namespace DirectPackageInstaller.Views
 
             var OriSource = InputType;
             InputType = Source.NONE;
+
+            if (OriSource.HasFlag(Source.PKGStream))
+            {
+                App.Callback(() => BtnLoadOnClick(Entry, null));
+                return;
+            }
 
             if (OriSource.HasFlag(Source.RAR) || OriSource.HasFlag(Source.SevenZip))
             {
@@ -1269,6 +1311,8 @@ namespace DirectPackageInstaller.Views
 
             PKGStream?.Close();
             PKGStream?.Dispose();
+            PKGStreamInstallUrl = null;
+            PKGStreamArchiveUrl = null;
         }
 
 
