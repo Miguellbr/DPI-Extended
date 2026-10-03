@@ -40,6 +40,7 @@ Publish () {
    echo "Building for $1"
    dotnet restore -r $1
    dotnet publish -c Release -r $1 $2
+   ./Tools/prepare-pkgstream-runtime.sh $1 DirectPackageInstaller/DirectPackageInstaller.Desktop/bin/Release/net8.0/$1/publish
    zip -j -9 -r Release/$1.zip DirectPackageInstaller/DirectPackageInstaller.Desktop/bin/Release/net8.0/$1/publish/* -x Icon.icns
 }
 
@@ -266,6 +267,7 @@ exit
 echo Building for %1
 dotnet restore -r %1
 dotnet publish -c Release -r %1
+powershell -ExecutionPolicy Bypass -File .\Tools\prepare-pkgstream-runtime.ps1 -Target %1 -Out .\DirectPackageInstaller\DirectPackageInstaller.Desktop\bin\Release\net8.0\%1\publish
 powershell Compress-Archive .\DirectPackageInstaller\DirectPackageInstaller.Desktop\bin\Release\net8.0\%1\publish\* .\Release\%1.zip
 goto :eof
 
