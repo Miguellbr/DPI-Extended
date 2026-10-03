@@ -104,6 +104,10 @@ namespace DirectPackageInstaller.Tasks
 
             switch (InputType)
             {
+                case Source.URL | Source.PKGStream:
+                    CanSplit = false;
+                    break;
+
                 case Source.URL | Source.SevenZip:
                 case Source.URL | Source.RAR:
                     CanSplit = false;
