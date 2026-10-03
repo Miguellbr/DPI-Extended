@@ -27,7 +27,7 @@ namespace DirectPackageInstaller.Tasks
                 if (Process is { HasExited: false })
                     return true;
 
-                StartTask ??= StartCoreAsync();
+                if (StartTask is null || StartTask.IsCompleted)\n                    StartTask = StartCoreAsync();
             }
 
             return await StartTask.WaitAsync(cancellationToken);
@@ -49,7 +49,7 @@ namespace DirectPackageInstaller.Tasks
             var psi = new ProcessStartInfo
             {
                 FileName = node,
-                Arguments = $""{script}"",
+                Arguments = $"\"{script}\"",
                 WorkingDirectory = Path.GetDirectoryName(script)!,
                 UseShellExecute = false,
                 CreateNoWindow = true,
