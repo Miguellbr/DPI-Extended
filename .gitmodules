@@ -7,3 +7,6 @@
 [submodule "DHCPServer"]
 	path = DHCPServer
 	url = https://github.com/jpmikkers/DHCPServer/
+[submodule "PKGStream"]
+	path = PKGStream
+	url = https://github.com/Miguellbr/PKGStream.git
