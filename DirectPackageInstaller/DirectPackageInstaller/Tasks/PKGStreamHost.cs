@@ -27,7 +27,8 @@ namespace DirectPackageInstaller.Tasks
                 if (Process is { HasExited: false })
                     return true;
 
-                if (StartTask is null || StartTask.IsCompleted)\n                    StartTask = StartCoreAsync();
+                if (StartTask is null || StartTask.IsCompleted)
+                    StartTask = StartCoreAsync();
             }
 
             return await StartTask.WaitAsync(cancellationToken);
