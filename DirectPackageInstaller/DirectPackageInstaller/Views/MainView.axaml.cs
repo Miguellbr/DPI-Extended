@@ -60,8 +60,6 @@ namespace DirectPackageInstaller.Views
 
         private string? PKGStreamInstallUrl;
 
-        private string? PKGStreamArchiveUrl;
-
         public MainViewModel? Model => (MainViewModel?)DataContext;
         
         public MainView()
@@ -603,7 +601,6 @@ namespace DirectPackageInstaller.Views
                     {
                         PKGStream = RemotePKG.Stream;
                         PKGStreamInstallUrl = RemotePKG.StreamUrl;
-                        PKGStreamArchiveUrl = SourcePackage;
                         Installer.EntryFileName = Path.GetFileName(RemotePKG.EntryName);
                         InputType = Source.URL | Source.PKGStream;
                         LoadedFromPKGStream = true;
@@ -753,7 +750,8 @@ namespace DirectPackageInstaller.Views
                 btnLoad.IsEnabled = true;
             }
 
-            PKGStream?.Close();
+            if (!InputType.HasFlag(Source.PKGStream))
+                PKGStream?.Close();
         }
 
         private async Task<FileHostStream?> LoadUrl(string SourcePackage)
