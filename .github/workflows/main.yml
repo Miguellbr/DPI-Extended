@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -27,7 +27,7 @@ jobs:
       - name: Install NDK
         run: sdkmanager "ndk;24.0.8215888"
 
-      - uses: actions/setup-dotnet@v2
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
@@ -55,7 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v2
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
@@ -65,6 +65,7 @@ jobs:
         run: |
           git submodule init
           git submodule update
+          dotnet workload install android
           sh Build.cmd
 
       - name: Verify ad-hoc signature on arm64 .app
