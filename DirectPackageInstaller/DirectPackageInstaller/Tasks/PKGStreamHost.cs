@@ -45,7 +45,11 @@ namespace DirectPackageInstaller.Tasks
             if (!File.Exists(script))
                 return false;
 
-            var node = Environment.GetEnvironmentVariable("PKGSTREAM_NODE") ?? "node";
+            var bundledNode = Path.Combine(Path.GetDirectoryName(script)!, "node", OperatingSystem.IsWindows() ? "node.exe" : "node");
+            var node = Environment.GetEnvironmentVariable("PKGSTREAM_NODE");
+
+            if (string.IsNullOrWhiteSpace(node))
+                node = File.Exists(bundledNode) ? bundledNode : "node";
 
             var psi = new ProcessStartInfo
             {
