@@ -40,6 +40,8 @@ if (-not $Node) { throw "Node binary not found in $Archive" }
 $NodeDir = Join-Path $Out "PKGStream/node"
 New-Item -ItemType Directory -Force -Path $NodeDir | Out-Null
 Copy-Item $Node.FullName (Join-Path $NodeDir "node.exe")
+$NodeLicense = Get-ChildItem -Path $Extracted -Filter "LICENSE*" -Recurse | Select-Object -First 1
+if ($NodeLicense) { Copy-Item $NodeLicense.FullName (Join-Path $NodeDir "LICENSE.txt") -Force }
 
 if (-not (Test-Path (Join-Path $Pkg "node_modules/@mary/rar"))) {
   Push-Location $Pkg
