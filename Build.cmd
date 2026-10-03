@@ -40,7 +40,9 @@ Publish () {
    echo "Building for $1"
    dotnet restore -r $1
    dotnet publish -c Release -r $1 $2
-   ./Tools/prepare-pkgstream-runtime.sh $1 DirectPackageInstaller/DirectPackageInstaller.Desktop/bin/Release/net8.0/$1/publish
+   case "$1" in
+      win-*|linux-*|osx-*) ./Tools/prepare-pkgstream-runtime.sh $1 DirectPackageInstaller/DirectPackageInstaller.Desktop/bin/Release/net8.0/$1/publish ;;
+   esac
    zip -j -9 -r Release/$1.zip DirectPackageInstaller/DirectPackageInstaller.Desktop/bin/Release/net8.0/$1/publish/* -x Icon.icns
 }
 
