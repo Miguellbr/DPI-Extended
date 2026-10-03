@@ -109,10 +109,6 @@ namespace DirectPackageInstaller.Tasks
             {
                 return null;
             }
-            catch (TaskCanceledException)
-            {
-                return null;
-            }
         }
     }
 }
