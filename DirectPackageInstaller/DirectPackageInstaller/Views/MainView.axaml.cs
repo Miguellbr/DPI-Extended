@@ -986,13 +986,59 @@ namespace DirectPackageInstaller.Views
             Model.UseDebridLink = !Model.UseDebridLink;
         }
 
-        private async Task<bool> Install(string URL, bool Silent)
+        private async Task<bool> RunPreInstallDiagnostics()
         {
-            if (string.IsNullOrWhiteSpace(App.Config.PSIP) || string.IsNullOrWhiteSpace(App.Config.PCIP))
+            if (string.IsNullOrWhiteSpace(App.Config.PSIP) || App.Config.PSIP == "0.0.0.0")
             {
-                await MessageBox.ShowAsync(Parent, "Failed to detect your playstation IP.\nPlease, Type your PS/PC IP in the options menu", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                await MessageBox.ShowAsync(Parent, "Pre-install check failed: PS4 IP is not configured.", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
+
+            if (string.IsNullOrWhiteSpace(App.Config.PCIP) || App.Config.PCIP == "0.0.0.0")
+            {
+                await MessageBox.ShowAsync(Parent, "Pre-install check failed: PC/phone IP is not configured.", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (PKGStream == null || PKGStream.Length <= 0)
+            {
+                await MessageBox.ShowAsync(Parent, "Pre-install check failed: no readable package source is loaded.", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (Installer.CurrentPKG.PackageSize <= 0)
+            {
+                try
+                {
+                    PKGStream.Position = 0;
+                    Installer.CurrentPKG = PKGStream.GetPKGInfo() ?? throw new InvalidDataException();
+                    PKGStream.Position = 0;
+                }
+                catch
+                {
+                    await MessageBox.ShowAsync(Parent, "Pre-install check failed: the selected source is not a readable PKG.", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+            }
+
+            await SetStatus("Checking PS4 installation service...");
+
+            if (!await IPHelper.IsRPIOnline(App.Config.PSIP) &&
+                !await IPHelper.IsGoldHENOnline(App.Config.PSIP) &&
+                !Installer.Payload.ClientRunning &&
+                !await IPHelper.IsEtaHenOnline(App.Config.PSIP))
+            {
+                await MessageBox.ShowAsync(Parent, $"Pre-install check failed: no RPI, GoldHEN or etaHEN installation service was found at {App.Config.PSIP}.", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            return true;
+        }
+
+        private async Task<bool> Install(string URL, bool Silent)
+        {
+            if (!await RunPreInstallDiagnostics())
+                return false;
 
             var OriStatus = Status.Text;
             btnLoad.Content = "Pushing...";
