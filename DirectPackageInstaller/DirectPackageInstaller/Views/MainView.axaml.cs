@@ -1132,14 +1132,19 @@ namespace DirectPackageInstaller.Views
                     if (Model != null)
                         Model.CurrentURL = Source;
 
-                    await BtnLoadOnClick(null, new RoutedEventArgs());
+                    BtnLoadOnClick(null, new RoutedEventArgs());
+                    while (!btnLoad.IsEnabled)
+                        await Task.Delay(100);
+
                     if (InputType == Source.NONE)
                     {
                         Status.Text = $"Queue: failed to load {Path.GetFileName(Source)}";
                         continue;
                     }
 
-                    await BtnLoadOnClick(null, new RoutedEventArgs());
+                    BtnLoadOnClick(null, new RoutedEventArgs());
+                    while (!btnLoad.IsEnabled)
+                        await Task.Delay(100);
                 }
 
                 Status.Text = "Queue completed";
