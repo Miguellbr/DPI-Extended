@@ -594,18 +594,45 @@ namespace DirectPackageInstaller.Views
 
                 if (PKGStream is null && SourcePackage.IsValidURL())
                 {
-                    var RemoteEntry = ForcedSource is { Length: > 0 } ? ForcedSource : null;
-                    var RemotePKG = await PKGStreamClient.TryOpenAsync(SourcePackage, RemoteEntry);
+                    // Smart Source: direct PKG/7z links go through the native DPI
+                    // path immediately. RAR/unknown remote links get the PKGStream
+                    // opportunity first, then fall back to DPI's normal URL flow.
+                    bool TryPKGStream = true;
 
-                    if (RemotePKG != null)
+                    try
                     {
-                        PKGStream = RemotePKG.Stream;
-                        PKGStreamInstallUrl = RemotePKG.StreamUrl;
-                        Installer.EntryFileName = Path.GetFileName(RemotePKG.EntryName);
-                        InputType = Source.URL | Source.PKGStream;
-                        LoadedFromPKGStream = true;
+                        var SourceInfo = await URLAnalyzer.Analyze(SourcePackage, true);
+                        if (!SourceInfo.Failed && SourceInfo.Urls.Length == 1)
+                        {
+                            var Filename = SourceInfo.Urls[0].Filename?.ToLowerInvariant();
 
-                        ListEntries(RemotePKG.Entries.Select(Path.GetFileName).ToArray());
+                            if (!string.IsNullOrWhiteSpace(Filename) &&
+                                (Filename.EndsWith(".pkg") || Filename.EndsWith(".7z")))
+                            {
+                                TryPKGStream = false;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Unknown/opaque URLs remain eligible for PKGStream.
+                    }
+
+                    if (TryPKGStream)
+                    {
+                        var RemoteEntry = ForcedSource is { Length: > 0 } ? ForcedSource : null;
+                        var RemotePKG = await PKGStreamClient.TryOpenAsync(SourcePackage, RemoteEntry);
+
+                        if (RemotePKG != null)
+                        {
+                            PKGStream = RemotePKG.Stream;
+                            PKGStreamInstallUrl = RemotePKG.StreamUrl;
+                            Installer.EntryFileName = Path.GetFileName(RemotePKG.EntryName);
+                            InputType = Source.URL | Source.PKGStream;
+                            LoadedFromPKGStream = true;
+
+                            ListEntries(RemotePKG.Entries.Select(Path.GetFileName).ToArray());
+                        }
                     }
                 }
 
