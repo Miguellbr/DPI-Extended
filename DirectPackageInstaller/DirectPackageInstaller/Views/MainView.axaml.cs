@@ -60,6 +60,9 @@ namespace DirectPackageInstaller.Views
 
         private string? PKGStreamInstallUrl;
 
+        private readonly Queue<string> InstallQueue = new Queue<string>();
+        private bool QueueRunning;
+
         public MainViewModel? Model => (MainViewModel?)DataContext;
         
         public MainView()
@@ -79,6 +82,13 @@ namespace DirectPackageInstaller.Views
             PkgInfoGrid = this.Find<DataGrid>("PkgInfoGrid");
             
             btnInstallAll = this.Find<MenuItem>("btnInstallAll");
+
+            var QueueAdd = this.Find<MenuItem>("btnQueueAdd");
+            var QueueStart = this.Find<MenuItem>("btnQueueStart");
+            var QueueClear = this.Find<MenuItem>("btnQueueClear");
+            QueueAdd.Click += BtnQueueAddOnClick;
+            QueueStart.Click += BtnQueueStartOnClick;
+            QueueClear.Click += BtnQueueClearOnClick;
             btnProxyDownload = this.Find<MenuItem>("btnProxyDownload");
             btnRestartServer = this.Find<MenuItem>("btnRestartServer");
             btnAllDebirdEnabled = this.Find<MenuItem>("btnAllDebirdEnabled");
@@ -1078,6 +1088,68 @@ namespace DirectPackageInstaller.Views
             }
         }
         
+        private void BtnQueueAddOnClick(object? sender, RoutedEventArgs? e)
+        {
+            var Source = Model?.CurrentURL;
+            if (string.IsNullOrWhiteSpace(Source))
+            {
+                _ = MessageBox.ShowAsync(Parent, "Enter or select a package source first.", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            InstallQueue.Enqueue(Source);
+            Status.Text = $"Queue: {InstallQueue.Count} package(s) waiting";
+        }
+
+        private void BtnQueueClearOnClick(object? sender, RoutedEventArgs? e)
+        {
+            if (QueueRunning)
+                return;
+
+            InstallQueue.Clear();
+            Status.Text = "Queue cleared";
+        }
+
+        private async void BtnQueueStartOnClick(object? sender, RoutedEventArgs? e)
+        {
+            if (QueueRunning || InstallQueue.Count == 0)
+                return;
+
+            QueueRunning = true;
+            try
+            {
+                while (InstallQueue.Count > 0)
+                {
+                    var Source = InstallQueue.Dequeue();
+                    Status.Text = $"Queue: loading {Path.GetFileName(Source)}";
+
+                    InputType = Source.NONE;
+                    PKGStreamInstallUrl = null;
+                    PKGStream?.Close();
+                    PKGStream?.Dispose();
+                    PKGStream = null;
+
+                    if (Model != null)
+                        Model.CurrentURL = Source;
+
+                    await BtnLoadOnClick(null, new RoutedEventArgs());
+                    if (InputType == Source.NONE)
+                    {
+                        Status.Text = $"Queue: failed to load {Path.GetFileName(Source)}";
+                        continue;
+                    }
+
+                    await BtnLoadOnClick(null, new RoutedEventArgs());
+                }
+
+                Status.Text = "Queue completed";
+            }
+            finally
+            {
+                QueueRunning = false;
+            }
+        }
+
         private async void BtnInstallAllOnClick(object? sender, RoutedEventArgs? e)
         {
             if (e != null)
