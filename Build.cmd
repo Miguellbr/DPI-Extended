@@ -119,6 +119,10 @@ AndroidPublish (){
    
    dotnet workload restore
 
+   if [ ! -f "Release/.android-test.keystore" ]; then
+      keytool -genkeypair -v -keystore "Release/.android-test.keystore" -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
+   fi
+
    echo "Building Android for $1"
    dotnet restore -r $1 DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj
    dotnet publish DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj -c Release -r $1
@@ -134,6 +138,14 @@ AndroidPublish (){
 
    APK_DIR="$(dirname "$APK_SOURCE")"
    mv "$APK_SOURCE" "$APK_DIR/DPI-Extended.apk"
+   APKSIGNER="$(find "$AndroidSdkDirectory/build-tools" -type f -name apksigner -print -quit)"
+   if [ -z "$APKSIGNER" ]; then
+      echo "ANDROID APKSIGNER NOT FOUND"
+      exit 1
+   fi
+   "$APKSIGNER" sign --ks "Release/.android-test.keystore" --ks-pass pass:android --key-pass pass:android --out "$APK_DIR/DPI-Extended-signed.apk" "$APK_DIR/DPI-Extended.apk"
+   mv "$APK_DIR/DPI-Extended-signed.apk" "$APK_DIR/DPI-Extended.apk"
+   "$APKSIGNER" verify --verbose "$APK_DIR/DPI-Extended.apk"
    zip -j -9 -r Release/$1.zip "$APK_DIR/DPI-Extended.apk"
 }
 if has_target win; then
@@ -307,6 +319,7 @@ IF NOT EXIST "%AndroidNdkDirectory%ndk-build.cmd" (
 \tgoto :eof
 )
 echo Building Android for %1
+if not exist ".\Release\.android-test.keystore" keytool -genkeypair -v -keystore ".\Release\.android-test.keystore" -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
 dotnet restore -r %1 .\DirectPackageInstaller\DirectPackageInstaller.Android\DirectPackageInstaller.Android.csproj
 dotnet publish .\DirectPackageInstaller\DirectPackageInstaller.Android\DirectPackageInstaller.Android.csproj -c Release -r %1
 set "ANDROID_OUTPUT_DIR=.\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release"
@@ -320,5 +333,14 @@ if not defined APK_SOURCE (
 )
 for %%D in ("%APK_SOURCE%") do set "APK_DIR=%%~dpD"
 move /Y "%APK_SOURCE%" "%APK_DIR%DPI-Extended.apk"
+set "APKSIGNER="
+for /r "%AndroidSdkDirectory%build-tools" %%F in (apksigner.bat) do if not defined APKSIGNER set "APKSIGNER=%%~fF"
+if not defined APKSIGNER (
+  echo ANDROID APKSIGNER NOT FOUND
+  exit /b 1
+)
+call "%APKSIGNER%" sign --ks ".\Release\.android-test.keystore" --ks-pass pass:android --key-pass pass:android --out "%APK_DIR%DPI-Extended-signed.apk" "%APK_DIR%DPI-Extended.apk"
+move /Y "%APK_DIR%DPI-Extended-signed.apk" "%APK_DIR%DPI-Extended.apk"
+call "%APKSIGNER%" verify --verbose "%APK_DIR%DPI-Extended.apk"
 powershell Compress-Archive -Path "%APK_DIR%DPI-Extended.apk" -DestinationPath ".\Release\%1.zip" -Force
 goto :eof
