@@ -24,8 +24,8 @@ if [ -d "/usr/local/lib/android/sdk" ]; then
 fi
 
 dotnet clean
-rm -r Release
-mkdir Release
+rm -rf Release
+mkdir -p Release
 
 # BUILD_TARGETS controls which platforms get built. Default = all.
 # Accepts comma-separated list: win, linux, osx, android
@@ -124,11 +124,7 @@ AndroidPublish (){
    dotnet publish DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj -c Release -r $1
 
    ANDROID_OUTPUT_DIR="DirectPackageInstaller/DirectPackageInstaller.Android/bin/Release"
-   APK_SOURCE=""
-   while IFS= read -r apk; do
-      APK_SOURCE="$apk"
-      break
-   done < <(find "$ANDROID_OUTPUT_DIR" -type f -name '*.apk' -print)
+   APK_SOURCE="$(find "$ANDROID_OUTPUT_DIR" -type f -name '*.apk' -print -quit)"
 
    if [ -z "$APK_SOURCE" ]; then
       echo "ANDROID APK NOT FOUND under: $ANDROID_OUTPUT_DIR"
