@@ -63,6 +63,9 @@ namespace DirectPackageInstaller.Views
         private readonly Queue<string> InstallQueue = new Queue<string>();
         private bool QueueRunning;
 
+        private MenuItem? LibraryMenu;
+        private const string LocalLibraryFolderName = "Library";
+
         public MainViewModel? Model => (MainViewModel?)DataContext;
         
         public MainView()
@@ -86,6 +89,11 @@ namespace DirectPackageInstaller.Views
             var QueueAdd = this.Find<MenuItem>("btnQueueAdd");
             var QueueStart = this.Find<MenuItem>("btnQueueStart");
             var QueueClear = this.Find<MenuItem>("btnQueueClear");
+            LibraryMenu = this.Find<MenuItem>("LibraryMenu");
+            var LibraryScan = this.Find<MenuItem>("btnLibraryScan");
+            var LibraryClear = this.Find<MenuItem>("btnLibraryClear");
+            LibraryScan.Click += BtnLibraryScanOnClick;
+            LibraryClear.Click += BtnLibraryClearOnClick;
             QueueAdd.Click += BtnQueueAddOnClick;
             QueueStart.Click += BtnQueueStartOnClick;
             QueueClear.Click += BtnQueueClearOnClick;
@@ -1088,6 +1096,62 @@ namespace DirectPackageInstaller.Views
             }
         }
         
+        private string GetLocalLibraryPath()
+        {
+            var Path = System.IO.Path.Combine(App.RootDir, LocalLibraryFolderName);
+            Directory.CreateDirectory(Path);
+            return Path;
+        }
+
+        private void BtnLibraryClearOnClick(object? sender, RoutedEventArgs? e)
+        {
+            if (LibraryMenu == null)
+                return;
+
+            while (LibraryMenu.Items.Count > 3)
+                LibraryMenu.Items.RemoveAt(0);
+
+            Status.Text = "Local library list cleared";
+        }
+
+        private void BtnLibraryScanOnClick(object? sender, RoutedEventArgs? e)
+        {
+            if (LibraryMenu == null)
+                return;
+
+            var Folder = GetLocalLibraryPath();
+            var Files = Directory.EnumerateFiles(Folder, "*", SearchOption.AllDirectories)
+                .Where(x => x.EndsWith(".pkg", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            BtnLibraryClearOnClick(null, null);
+
+            foreach (var FilePath in Files)
+            {
+                var Item = new MenuItem
+                {
+                    Header = System.IO.Path.GetFileName(FilePath),
+                    DataContext = FilePath
+                };
+
+                Item.Click += async (_, _) =>
+                {
+                    if (Model == null)
+                        return;
+
+                    Model.CurrentURL = FilePath;
+                    await BtnLoadOnClick(null, new RoutedEventArgs());
+                };
+
+                LibraryMenu.Items.Insert(0, Item);
+            }
+
+            Status.Text = Files.Length == 0
+                ? $"Local library empty: {Folder}"
+                : $"Local library: {Files.Length} package(s) found";
+        }
+
         private void BtnQueueAddOnClick(object? sender, RoutedEventArgs? e)
         {
             var Source = Model?.CurrentURL;

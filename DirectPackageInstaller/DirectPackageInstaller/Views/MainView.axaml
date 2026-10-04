@@ -107,6 +107,11 @@
                 <MenuItem Header="Start queue" Name="btnQueueStart"></MenuItem>
                 <MenuItem Header="Clear queue" Name="btnQueueClear"></MenuItem>
             </MenuItem>
+            <MenuItem Header="Library" Name="LibraryMenu">
+                <MenuItem Header="Scan local library" Name="btnLibraryScan"></MenuItem>
+                <MenuItem Header="Clear library list" Name="btnLibraryClear"></MenuItem>
+                <Separator></Separator>
+            </MenuItem>
         </Menu>
 
         <Grid Grid.Row="1" Grid.ColumnSpan="2">
