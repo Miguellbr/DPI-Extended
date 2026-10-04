@@ -122,17 +122,15 @@ Windows, Linux e Android usam o runtime .NET 8 de acordo com o pacote do alvo. A
 
 ## Downloads
 
-### Build mais recente
+### Release mais recente
 
-A build mais recente foi concluída com sucesso no GitHub Actions e contém os pacotes para Windows, Linux, Android e macOS.
+**O DPI-Extended v0.1.0 já está publicado como uma GitHub Release.**
 
-**APK Android:**
+[**Baixar a release mais recente — GitHub Releases**](https://github.com/Miguellbr/DPI-Extended/releases/latest)
 
-O APK está dentro do artefato **`Releases-nonmac`** da build abaixo:
+A release contém builds para Windows, Linux, Android e macOS.
 
-[**Baixar APK e builds — GitHub Actions**](https://github.com/Miguellbr/DPI-Extended/actions/runs/37195806498)
-
-Abra a execução, vá até **Artifacts** e baixe **`Releases-nonmac`**. O APK Android está dentro desse arquivo.
+Para Android, escolha o pacote correspondente à arquitetura do seu aparelho (`ARM`, `ARM64`, `X64` ou `X86`) e extraia o APK do ZIP baixado.
 
 ### Estado real dos testes
 
@@ -146,7 +144,7 @@ Abra a execução, vá até **Artifacts** e baixe **`Releases-nonmac`**. O APK A
 >
 > Portanto, o primeiro teste recomendado é instalar o APK em um Android real e verificar o funcionamento do DPI-Extended, especialmente o fluxo RAR remoto → PKG através do PKGStream.
 
-Os artefatos do GitHub Actions são temporários e podem expirar de acordo com a política de retenção do repositório.
+O GitHub Actions é usado para compilar e publicar a release. A release publicada é o local recomendado para obter as builds atuais.
 
 ## Compilação
 
