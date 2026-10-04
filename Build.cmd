@@ -122,8 +122,12 @@ AndroidPublish (){
    Publish $1
    
    rm Release/$1.zip
-   rm DirectPackageInstaller/DirectPackageInstaller.Android/bin/Release/net8.0-android/$1/publish/com.marcussacana.DirectPackageInstaller.apk
-   zip -j -9 -r Release/$1.zip DirectPackageInstaller/DirectPackageInstaller.Android/bin/Release/net8.0-android/$1/publish/*.apk
+   ANDROID_PUBLISH_DIR="DirectPackageInstaller/DirectPackageInstaller.Android/bin/Release/net8.0-android/$1/publish"
+   for apk in "$ANDROID_PUBLISH_DIR"/*.apk; do
+      mv "$apk" "$ANDROID_PUBLISH_DIR/DPI-Extended.apk"
+      break
+   done
+   zip -j -9 -r Release/$1.zip "$ANDROID_PUBLISH_DIR/DPI-Extended.apk"
 }
 
 if has_target win; then
@@ -298,6 +302,10 @@ IF NOT EXIST "%AndroidNdkDirectory%ndk-build.cmd" (
 )
 call :Build %1
 del /s /q .\Release\%1.zip
-del /s /q .\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release\net8.0-android\%1\publish\com.marcussacana.DirectPackageInstaller.apk
-powershell Compress-Archive .\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release\net8.0-android\%1\publish\*.apk .\Release\%1.zip
+for %%F in (".\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release\net8.0-android\%1\publish\*.apk") do (
+  move /Y "%%~fF" ".\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release\net8.0-android\%1\publish\DPI-Extended.apk"
+  goto :AndroidApkRenamed
+)
+:AndroidApkRenamed
+powershell Compress-Archive .\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release\net8.0-android\%1\publish\DPI-Extended.apk .\Release\%1.zip
 goto :eof
