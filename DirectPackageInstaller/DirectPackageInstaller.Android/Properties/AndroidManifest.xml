@@ -14,7 +14,7 @@
 	<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-	<application android:label="DirectPackageInstaller" android:icon="@drawable/icon" android:requestLegacyExternalStorage="true">
+	<application android:label="DPI-Extended" android:icon="@drawable/icon" android:requestLegacyExternalStorage="true">
 		<provider android:name="androidx.core.content.FileProvider" android:authorities="com.marcussacana.DirectPackageInstaller.provider" android:exported="false" android:grantUriPermissions="true">
 			<meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_path" />
 		</provider>
