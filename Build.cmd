@@ -110,11 +110,11 @@ OSXPublish (){
 }
 
 AndroidPublish (){
-   if ! [ -d "${AndroidSdkDirectory}build-tools" ]; then
-   	echo "POSSIBLE INVALID ANDROID SDK PATH";
+   if ! [ -d "\${AndroidSdkDirectory}build-tools" ]; then
+   \techo "POSSIBLE INVALID ANDROID SDK PATH";
    fi
-   if ! [ -f "${AndroidNdkDirectory}ndk-build" ]; then
-   	echo "POSSIBLE INVALID ANDROID NDK PATH";
+   if ! [ -f "\${AndroidNdkDirectory}ndk-build" ]; then
+   \techo "POSSIBLE INVALID ANDROID NDK PATH";
    fi
    
    dotnet workload restore
@@ -123,24 +123,23 @@ AndroidPublish (){
    dotnet restore -r $1 DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj
    dotnet publish DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj -c Release -r $1
 
-   ANDROID_PUBLISH_DIR="DirectPackageInstaller/DirectPackageInstaller.Android/bin/Release/net8.0-android/$1/publish"
-   APK_FOUND=0
-   for apk in "$ANDROID_PUBLISH_DIR"/*.apk; do
-      if [ -f "$apk" ]; then
-         mv "$apk" "$ANDROID_PUBLISH_DIR/DPI-Extended.apk"
-         APK_FOUND=1
-         break
-      fi
-   done
+   ANDROID_OUTPUT_DIR="DirectPackageInstaller/DirectPackageInstaller.Android/bin/Release"
+   APK_SOURCE=""
+   while IFS= read -r apk; do
+      APK_SOURCE="$apk"
+      break
+   done < <(find "$ANDROID_OUTPUT_DIR" -type f -name '*.apk' -print)
 
-   if [ "$APK_FOUND" -ne 1 ] || [ ! -f "$ANDROID_PUBLISH_DIR/DPI-Extended.apk" ]; then
-      echo "ANDROID APK NOT FOUND: $ANDROID_PUBLISH_DIR"
+   if [ -z "$APK_SOURCE" ]; then
+      echo "ANDROID APK NOT FOUND under: $ANDROID_OUTPUT_DIR"
+      find "$ANDROID_OUTPUT_DIR" -type f | head -100
       exit 1
    fi
 
-   zip -j -9 -r Release/$1.zip "$ANDROID_PUBLISH_DIR/DPI-Extended.apk"
+   APK_DIR="$(dirname "$APK_SOURCE")"
+   mv "$APK_SOURCE" "$APK_DIR/DPI-Extended.apk"
+   zip -j -9 -r Release/$1.zip "$APK_DIR/DPI-Extended.apk"
 }
-
 if has_target win; then
    WINPublish win-x64
    WINPublish win-x86
@@ -304,29 +303,26 @@ rmdir /s /q .\Release\tmp
 goto :eof
 :AndroidBuild
 IF NOT EXIST "%AndroidSdkDirectory%build-tools" (
-	echo ANDROID SDK NOT FOUND
-	goto :eof
+\techo ANDROID SDK NOT FOUND
+\tgoto :eof
 )
 IF NOT EXIST "%AndroidNdkDirectory%ndk-build.cmd" (
-	echo ANDROID NDK NOT FOUND
-	goto :eof
+\techo ANDROID NDK NOT FOUND
+\tgoto :eof
 )
 echo Building Android for %1
 dotnet restore -r %1 .\DirectPackageInstaller\DirectPackageInstaller.Android\DirectPackageInstaller.Android.csproj
 dotnet publish .\DirectPackageInstaller\DirectPackageInstaller.Android\DirectPackageInstaller.Android.csproj -c Release -r %1
-set "ANDROID_PUBLISH_DIR=.\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release\net8.0-android\%1\publish"
-set "APK_FOUND=0"
-for %%F in ("%ANDROID_PUBLISH_DIR%\*.apk") do (
-  if exist "%%~fF" (
-    move /Y "%%~fF" "%ANDROID_PUBLISH_DIR%\DPI-Extended.apk"
-    set "APK_FOUND=1"
-    goto :AndroidApkRenamed
-  )
+set "ANDROID_OUTPUT_DIR=.\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release"
+set "APK_SOURCE="
+for /r "%ANDROID_OUTPUT_DIR%" %%F in (*.apk) do (
+  if exist "%%~fF" if not defined APK_SOURCE set "APK_SOURCE=%%~fF"
 )
-:AndroidApkRenamed
-if "%APK_FOUND%"=="0" (
-  echo ANDROID APK NOT FOUND: %ANDROID_PUBLISH_DIR%
+if not defined APK_SOURCE (
+  echo ANDROID APK NOT FOUND under: %ANDROID_OUTPUT_DIR%
   exit /b 1
 )
-powershell Compress-Archive -Path "%ANDROID_PUBLISH_DIR%\DPI-Extended.apk" -DestinationPath ".\Release\%1.zip" -Force
+for %%D in ("%APK_SOURCE%") do set "APK_DIR=%%~dpD"
+move /Y "%APK_SOURCE%" "%APK_DIR%DPI-Extended.apk"
+powershell Compress-Archive -Path "%APK_DIR%DPI-Extended.apk" -DestinationPath ".\Release\%1.zip" -Force
 goto :eof
