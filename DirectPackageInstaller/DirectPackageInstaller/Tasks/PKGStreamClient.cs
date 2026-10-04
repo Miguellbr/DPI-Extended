@@ -29,6 +29,22 @@ namespace DirectPackageInstaller.Tasks
         public static string BaseUrl =>
             (Environment.GetEnvironmentVariable("PKGSTREAM_URL") ?? "http://127.0.0.1:8080").TrimEnd('/');
 
+        private static bool IsMultipartVolume(string? filename)
+        {
+            if (string.IsNullOrWhiteSpace(filename))
+                return false;
+
+            var name = filename.Trim();
+            var lower = name.ToLowerInvariant();
+
+            if (lower.Contains(".part") && lower.EndsWith(".rar", StringComparison.Ordinal))
+                return true;
+
+            var extension = Path.GetExtension(lower);
+            return extension.StartsWith(".r", StringComparison.Ordinal) &&
+                   int.TryParse(extension.AsSpan(2), out _);
+        }
+
         public static async Task<PKGStreamResult?> TryOpenAsync(
             string archiveUrl,
             string? entryName = null,
@@ -40,6 +56,18 @@ namespace DirectPackageInstaller.Tasks
 
             try
             {
+                // Preserve DPI's native multipart-RAR flow. If the supplied URL
+                // identifies a RAR volume (.partN.rar / .r00), let Decompressor
+                // and URLAnalyzer collect/sort the remaining volumes instead of
+                // trying to treat a single volume as a complete remote archive.
+                var urlInfo = await URLAnalyzer.Analyze(archiveUrl, true);
+                if (!urlInfo.Failed && urlInfo.Urls.Length == 1)
+                {
+                    var filename = urlInfo.Urls[0].Filename;
+                    if (IsMultipartVolume(filename))
+                        return null;
+                }
+
                 if (!await PKGStreamHost.EnsureStartedAsync(cancellationToken))
                     return null;
 
