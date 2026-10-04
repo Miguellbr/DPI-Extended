@@ -124,11 +124,27 @@ Windows, Linux e Android usam o runtime .NET 8 de acordo com o pacote do alvo. A
 
 ### Build mais recente
 
-A build mais recente contém os pacotes para Windows, Linux, Android e macOS:
+A build mais recente foi concluída com sucesso no GitHub Actions e contém os pacotes para Windows, Linux, Android e macOS.
 
-[Baixar os artefatos pelo GitHub Actions](https://github.com/Miguellbr/DPI-Extended/actions/runs/37195806498)
+**APK Android:**
 
-> **Status dos testes:** o workflow de build está verde, mas os pacotes gerados ainda não foram testados fisicamente em Windows, Linux ou macOS pelo mantenedor, pois ele não possui PC/Mac disponível para testes. O APK Android também aguarda teste em um dispositivo real.
+O APK está dentro do artefato **`Releases-nonmac`** da build abaixo:
+
+[**Baixar APK e builds — GitHub Actions**](https://github.com/Miguellbr/DPI-Extended/actions/runs/37195806498)
+
+Abra a execução, vá até **Artifacts** e baixe **`Releases-nonmac`**. O APK Android está dentro desse arquivo.
+
+### Estado real dos testes
+
+> **IMPORTANTE:** o workflow estar verde significa que os pacotes foram compilados com sucesso. Isso **não significa que os aplicativos já foram testados em dispositivos reais**.
+>
+> - **Android:** o APK ainda aguarda teste em um dispositivo Android real.
+> - **Windows:** ainda não testado fisicamente.
+> - **Linux:** ainda não testado fisicamente.
+> - **macOS:** ainda não testado fisicamente.
+> - O mantenedor atualmente **não possui PC/Mac** para realizar os testes dessas plataformas.
+>
+> Portanto, o primeiro teste recomendado é instalar o APK em um Android real e verificar o funcionamento do DPI-Extended, especialmente o fluxo RAR remoto → PKG através do PKGStream.
 
 Os artefatos do GitHub Actions são temporários e podem expirar de acordo com a política de retenção do repositório.
 
