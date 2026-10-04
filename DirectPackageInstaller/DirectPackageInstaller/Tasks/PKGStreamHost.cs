@@ -11,7 +11,7 @@ namespace DirectPackageInstaller.Tasks
     {
         private static readonly object Sync = new();
         private static Process? Process;
-        private static Task? StartTask;
+        private static Task<bool>? StartTask;
 
         public static string BaseUrl =>
             (Environment.GetEnvironmentVariable("PKGSTREAM_URL") ?? "http://127.0.0.1:8080").TrimEnd('/');
