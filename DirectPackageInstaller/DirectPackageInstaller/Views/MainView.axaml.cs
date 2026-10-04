@@ -1310,7 +1310,6 @@ namespace DirectPackageInstaller.Views
             PKGStream?.Close();
             PKGStream?.Dispose();
             PKGStreamInstallUrl = null;
-            PKGStreamArchiveUrl = null;
         }
 
 
