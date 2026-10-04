@@ -114,16 +114,14 @@ jobs:
           path: Release
 
       - name: Publish release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v0.1.0
-          name: DPI Extended v0.1.0
-          body: |
-            First public test release of DPI Extended.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.1.0 \
+            --repo "${{ github.repository }}" \
+            --title "DPI Extended v0.1.0" \
+            --notes "First public test release of DPI Extended.
 
-            Includes the Windows, Linux and Android builds produced by the CI workflow.
-          files: |
-            Release/**
-          make_latest: true
-          prerelease: false
-          overwrite_files: true
+Includes the Windows, Linux and Android builds produced by the CI workflow." \
+            --latest \
+            Release/* || gh release upload v0.1.0 Release/* --clobber --repo "${{ github.repository }}"
