@@ -1,268 +1,166 @@
-# DirectPackageInstaller
+# DirectPackageInstaller Extended
 
-A tool to preview and send PKG files to your PS4 or PS5 using direct download links.  
-This tool supports three different methods for sending PKGs:
+**DirectPackageInstaller Extended (DPI-Extended)** is a community-derived version of DirectPackageInstaller that keeps the original DPI installation flow while adding an extra capability: handling remote RAR archives that contain PKG files.
 
--   Remote Package Installer Homebrew
--   GoldHEN Payload Server    
--   etaHEN DPIv2 API
-    
+[🇧🇷 Português](README.pt-BR.md) · [🇪🇸 Español](README.es.md)
 
-Features
-----------
+## What is DPI-Extended?
 
--   Preview PKG files
--   Standalone PS4 package downloads
--   PS5 etaHEN support
--   Automatic proxying to speed up PS4 downloads
--   Support for RAR/7z compressed files
--   Resumable downloads (only for uncompressed files)
--   Segmented downloads
--   Support for several file hosting services
--   Support for PSN update manifests (split PKGs)
--   Works with or without Remote Package Installer
--   Command Line Interface (CLI)
--   JDownloader Click'n Load support
--   Auto LAN Cable Connection (Windows Only)
--   Can Install PKGs from NFS source
-    
+DPI-Extended keeps DirectPackageInstaller as the main installer and preserves its existing PS4/PS5 installation paths.
 
-Supported File Hosting Services
-----------
+The main addition is **PKGStream** integration. It allows DPI to resolve a remote RAR, find a PKG inside it, and expose that PKG through the existing installation flow instead of requiring the user to install a RAR/unrar tool separately.
 
--   Any direct link (without authentication)
--   AllDebrid ([API key required](https://alldebrid.com/apikeys/))
--   RealDebrid ([API key required](https://real-debrid.com/apitoken))
--   DebridLink ([API key required](https://debrid-link.com/webapp/apikey))
--   Google Drive
--   Mediafire
--   PixelDrain
--   1Fichier (must wait 60 minutes after each download)
-    
-
-How to Install
-----------
-
-1.  Download a build compatible with your platform (see below).
-2.  On Windows, Linux, and Android, install the [.NET 8 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0/runtime) first.
-    macOS builds are self-contained and do not require a separate .NET install.
-    
-Downloads:
-----------
-
-<details> <summary>Windows</summary>
-
--   [ARM](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Windows-ARM.zip)    
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Windows-ARM64.zip)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Windows-X64.zip)    
--   [x86](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Windows-X86.zip)    
-
-</details> <details> <summary>Android</summary>
-
--   [ARM](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Android-ARM.zip)    
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Android-ARM64.zip)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Android-X64.zip)    
--   [x86](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Android-X86.zip)    
-
-</details> <details> <summary>Linux</summary>
-
--   [ARM](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Linux-ARM.zip)    
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Linux-ARM64.zip)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/Linux-X64.zip)    
-
-</details> <details> <summary>macOS</summary>
-
-**CLI builds:**
-
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-ARM64.zip)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-X64.zip)    
-
-**App builds (zip):**
-
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-ARM64-APP.zip)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-X64-APP.zip)   
-
-**App builds (DMG, drag-to-Applications):**
-
--   [ARM64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-ARM64-APP.dmg)    
--   [x64](https://raw.githubusercontent.com/marcussacana/DirectPackageInstaller/Updater/OSX-X64-APP.dmg)
-
-macOS builds are self-contained (.NET 8 runtime bundled) and the .app is ad-hoc signed so it launches on Apple Silicon without further steps. If Gatekeeper still blocks the app after extracting the zip, run:
+Conceptually:
 
 ```
-xattr -dr com.apple.quarantine /Applications/DirectPackageInstaller.app
+Remote RAR URL
+     │
+     ▼
+DPI-Extended
+     │
+     ▼
+PKGStream
+ ├─ resolve remote source
+ ├─ open the RAR
+ ├─ find the PKG
+ └─ stream/cache the PKG
+     │
+     ▼
+Existing DPI installation flow
+     │
+     ▼
+PS4 / PS5
 ```
 
-</details>
+The interface remains intentionally simple: paste the URL and use **Open**. DPI-Extended decides whether the URL should be handled by the normal DPI path or by the integrated RAR-to-PKG path.
 
+## Features
 
-How to Use
-----------
+Everything from the original DirectPackageInstaller remains available, including:
 
-#### Direct Download Mode
+- Preview PKG files
+- Direct PKG downloads
+- PS4 and PS5 package installation
+- Remote Package Installer support
+- GoldHEN Payload Server support
+- etaHEN DPIv2 API support
+- Automatic proxying
+- RAR/7z compressed file support
+- Resumable downloads where supported
+- Segmented downloads
+- Support for several file-hosting services
+- PSN update manifests / split PKGs
+- Command Line Interface (CLI)
+- JDownloader Click'n Load support
+- Automatic LAN connection on Windows
+- NFS package sources
 
-1.  Launch Remote Package Installer or enable GoldHEN Payload Server.    
-2.  Open DirectPackageInstaller.    
-3.  Paste a direct PKG URL into the "PKG URL" field.    
-4.  Click "Load" and wait.    
-5.  Click "Install" and wait again.    
-6.  Done! You can close the application or shut down your PC.    
+### DPI-Extended additions
 
-#### Proxied Download Mode (for PS4s without internet access)
+- Remote RAR → PKG handling through PKGStream
+- Finds PKG entries inside remote RAR archives
+- Progressive streaming and caching through PKGStream
+- No separate RAR/unrar installation required for the integrated path
+- PKGStream is kept as an auxiliary component; DPI remains the installer
+- Desktop releases can bundle the Node.js runtime required by PKGStream
 
-1.  Launch Remote Package Installer or enable GoldHEN Payload Server.    
-2.  Open DirectPackageInstaller.    
-3.  Go to `Options -> Proxy Downloads` and enable it.    
-4.  Paste a direct PKG URL.    
-5.  Click "Load", then "Install".    
-6.  Wait for the installation to finish.
-    
+## Supported file-hosting services
 
-#### Segmented Download Mode (fastest)
+The original DPI supports:
 
-1.  Make sure you have enough free disk space.
-2.  Launch Remote Package Installer or enable GoldHEN Payload Server.
-3.  Open DirectPackageInstaller.
-4.  Go to `Options -> Segmented Downloads` and enable it.
-5.  Paste a direct PKG URL.
-6.  Click "Load", then "Install".
-7.  The PKG will be downloaded and preloaded before installation.
+- Any direct link (without authentication)
+- AllDebrid ([API key required](https://alldebrid.com/apikeys/))
+- RealDebrid ([API key required](https://real-debrid.com/apitoken))
+- DebridLink ([API key required](https://debrid-link.com/webapp/apikey))
+- Google Drive
+- MediaFire
+- PixelDrain
+- 1Fichier
 
-> Note: In segmented mode, the PS4 cannot track download progress accurately.
+Remote RAR handling additionally depends on whether the archive host can be resolved and accessed by PKGStream.
 
-#### Compressed File Mode (always proxied)
-1.  Make sure you have enough free disk space.    
-2.  Launch Remote Package Installer or enable GoldHEN Payload Server.    
-3.  Paste the direct URL to your compressed file.    
-4.  Click "Load" and wait.    
-5.  [Optional] Select the desired PKG from the file list.    
-6.  Click "Install" and wait.
+## How to use
 
-macOS CLI Usage
-----------
+### Direct PKG
 
-Use the terminal to run the app:
-```
-./DirectPackageInstaller.Desktop
-```
-In some cases, you may need to run:
-```
-dotnet DirectPackageInstaller.Desktop.dll
-```
+1. Start the package installation service supported by your setup.
+2. Open DPI-Extended.
+3. Paste a direct PKG URL into the URL field.
+4. Click **Open**.
+5. Click **Install** when the package is ready.
 
-NFS PKG Source
-----------
+### Remote RAR containing a PKG
 
-To use an NFS server as a source for DPI, you just need to provide a URL in a format supported by DPI.
-There are two supported NFS URL formats:
+1. Open DPI-Extended.
+2. Paste the URL of the remote RAR into the URL field.
+3. Click **Open**.
+4. DPI-Extended uses PKGStream to inspect the archive and locate the PKG.
+5. Select the desired PKG if the archive contains multiple packages.
+6. Continue with the normal DPI installation flow.
 
-- `nfs://YOUR_NFS_IP_OR_HOSTNAME/ExportedPath/FilePath/FileName.pkg`
+The user does not need to manually install a RAR extraction utility for this integrated path.
 
-- `nfs://YOUR_NFS_IP_OR_HOSTNAME/FilePath/FileName.pkg`
+## How it works
 
-In the first format, the path starts with the exact exported directory (as configured in the NFS server's /etc/exports).
-DPI will mount that specific export and look for the file within it.
+DPI-Extended does not replace the existing installer or GoldHEN/RPI path.
 
-In the second format, no specific export path is provided. In this case, DPI will attempt to search across all available exports on the NFS server to locate the requested file.
-Note that this may slow down the initial access if your server has many exports.
+When a remote RAR URL is detected, DPI-Extended asks the local PKGStream component to inspect the archive. PKGStream resolves the remote source, locates the requested PKG entry, and provides it as a normal byte stream to DPI.
 
-PS: The DPI is incompatible with the winnfsd due this bug [#88](https://github.com/winnfsd/winnfsd/issues/88), for windows, you can use [haneWIN NFS Server](https://www.hanewin.net/nfs-e.htm) instead.
+DPI then continues using its existing package installation infrastructure.
 
+This separation is intentional:
 
-How It Works
-----------
-DirectPackageInstaller is a simple tool that uses the Remote Package Installer's API to add PKG downloads directly to your PS4 or PS5. It helps you preview and send packages easily.
+- **DPI** = user interface and installer
+- **PKGStream** = remote archive access and PKG extraction/streaming
+- **GoldHEN/RPI/etaHEN** = existing console-side installation mechanisms
 
-Additionally, the tool features an automatic proxy server to accelerate downloads. Since the PS4 has much better speeds over LAN than WAN, proxying through your PC can significantly improve performance.
+## Installation
 
-It also works without the Remote Package Installer if you enable the binloader — the tool will automatically decide which method to use.
+Download a build compatible with your platform.
 
-When using compressed files (RAR/7z), everything happens in parallel: download, extraction, and upload to your console. This saves time and disk space compared to traditional methods.
+Windows, Linux, and Android builds use the .NET 8 runtime according to the target package. macOS builds are self-contained.
 
-Segmented mode downloads PKGs in parallel threads to your PC, while sending them to the console. It's the fastest option, though it won't show progress on the PS4 screen.
+> The integrated PKGStream runtime is packaged separately from the .NET application runtime. Desktop packages built for supported targets include the Node.js runtime and PKGStream dependencies needed by the integrated remote-RAR feature.
 
+## Downloads
 
-Command Line Interface (CLI)
-----------
+Build artifacts are currently produced by GitHub Actions. Release links will be added here when the distribution packages are published.
 
-An experimental CLI is available.
+## Building
 
-Note: RAR/7z and segmented downloads are not supported in CLI mode (yet).  
-To view available options:
+1. Install the .NET 8.x SDK.
+2. Clone the repository with its submodules.
+3. Run `Build.cmd`.
+4. The compiled packages are placed in the `Release` directory.
 
--   On Windows: `DirectPackageInstaller.Desktop.exe -help`    
--   On other systems: `DirectPackageInstaller.Desktop -help`
-    
+PKGStream is included as a Git submodule and is prepared as part of the desktop packaging process.
 
+## Project structure
 
+- `DirectPackageInstaller/` — main DPI application
+- `PKGStream/` — remote archive → PKG streaming component
+- `Miguellbr/rar` — maintained RAR library fork used by PKGStream
+- `Tools/` — packaging helpers for the integrated PKGStream runtime
 
-Dependencies
-----------
-Windows, Linux, and Android builds require the [.NET 8.0 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0/runtime).
-macOS builds are self-contained and ship with the runtime bundled.
+## Credits
 
+DPI-Extended is derived from **DirectPackageInstaller** by **marcussacana**.
 
-How to Build
-----------
+Original project and major components:
 
-1.  Install the .NET 8.x SDK.    
-2.  Run the `Build.cmd` script (works on both Windows and Unix-like systems).    
-3.  A `Release` directory with the compiled binaries will be created.    
+- **DirectPackageInstaller** by marcussacana
+- **LibOrbisPkg** by maxton
+- **HttpServerLite** by jchristn
+- Payload template by sleirsgoevy
+- PS4 OS internals help by LM
+- PS4 export definitions by OpenOrbis SDK
 
-For custom payloads, run `make` in the payload directory and replace the generated `payload.bin` inside `DirectPackageInstaller/DirectPackageInstaller/payload`.
+DPI-Extended additions:
 
-Android builds:
-----------
--   Targets API level 26    
--   Install Android SDK and NDK    
--   Accept SDK licenses    
--   Edit `Build.cmd` to set SDK/NDK paths    
--   Run `Build.cmd` as admin (first time only)
+- **PKGStream** integration
+- **@mary/rar** based remote RAR handling
+- Bundled PKGStream runtime packaging
 
-Alternatively, fork the project and use GitHub Actions for builds.
+## Disclaimer
 
-Q&A
-----------
-
-**My download is taking too long to start**  
-You're probably downloading a multipart compressed file. The more volumes, the longer it takes to scan and validate. This isn’t a bug — just how compressed file access works. Please be patient.
-
-**Download speed is slow, even in segmented mode**  
-Segmented mode doesn't report accurate progress to the PS4. Use your PC's Task Manager to monitor real network usage.
-
-**Segmented mode and only 2 Mbps?!**  
-Some hosting sites (e.g., Zippyshare) are just slow. Try testing with Google Drive for better performance.
-
-**Recommended file hostings?**
-
--   AllDebrid / RealDebrid    
--   Google Drive    
--   Mediafire
--   Everything else
--   1Fichier (slowest)
-    
-
-**I got an error during installation**  
-Open an issue! Seriously, don’t worry — mistakes happen. If there's a crash, check the `DPI-Crash.log` for details.
-
-Disclaimer
-----------
-
-This tool is for legitimate purposes only. It’s intended to help users install their personal backups. Piracy is not supported.  
-You are responsible for how you use this software.
-
-Warnings
-----------
-
--   Avoid multiple parallel decompressions — process one file at a time.
--   Compressed file downloads create a temporary PKG cache, requiring free disk space equal to the final PKG size.
-
-Credits
-----------
-
--   **LibOrbisPkg** by _maxton_
--   **HttpServerLite** by _jchristn_
--   Payload template by _sleirsgoevy_
--   PS4 OS internals help by _LM_
--   PS4 export definitions by _OpenOrbis SDK_
--   **DirectPackageInstaller** by _marcussacana_
+This software is intended for legitimate uses such as installing software and personal backups that you are authorized to use. The authors do not support piracy. You are responsible for how you use the software.
