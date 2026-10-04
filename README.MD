@@ -126,11 +126,27 @@ Windows, Linux, and Android builds use the .NET 8 runtime according to the targe
 
 ### Latest CI build
 
-The latest successful build contains the Windows, Linux, Android, and macOS packages:
+The latest build completed successfully in GitHub Actions and contains the Windows, Linux, Android, and macOS packages.
 
-[Download artifacts from GitHub Actions](https://github.com/Miguellbr/DPI-Extended/actions/runs/37195806498)
+**Android APK:**
 
-> **Testing status:** the build pipeline is green, but the generated packages have not been physically tested on Windows, Linux, or macOS by the maintainer because no PC/Mac is available for testing. The Android APK is also awaiting real-device testing.
+The APK is inside the **`Releases-nonmac`** artifact from the build below:
+
+[**Download APK and builds — GitHub Actions**](https://github.com/Miguellbr/DPI-Extended/actions/runs/37195806498)
+
+Open the workflow run, go to **Artifacts**, and download **`Releases-nonmac`**. The Android APK is inside that archive.
+
+### Actual testing status
+
+> **IMPORTANT:** a green workflow means that the packages built successfully. It **does not mean that the applications have been tested on real devices**.
+>
+> - **Android:** the APK is still awaiting testing on a real Android device.
+> - **Windows:** not physically tested yet.
+> - **Linux:** not physically tested yet.
+> - **macOS:** not physically tested yet.
+> - The maintainer currently **does not have a PC/Mac** available to perform these platform tests.
+>
+> The recommended first test is therefore the Android APK on a real device, especially the remote RAR → PKG flow through PKGStream.
 
 GitHub Actions artifacts are temporary and may expire according to the repository's artifact-retention policy.
 
