@@ -124,17 +124,15 @@ Windows, Linux, and Android builds use the .NET 8 runtime according to the targe
 
 ## Downloads
 
-### Latest CI build
+### Latest release
 
-The latest build completed successfully in GitHub Actions and contains the Windows, Linux, Android, and macOS packages.
+**DPI-Extended v0.1.0 is now published as a GitHub Release.**
 
-**Android APK:**
+[**Download the latest release — GitHub Releases**](https://github.com/Miguellbr/DPI-Extended/releases/latest)
 
-The APK is inside the **`Releases-nonmac`** artifact from the build below:
+The release contains builds for Windows, Linux, Android, and macOS.
 
-[**Download APK and builds — GitHub Actions**](https://github.com/Miguellbr/DPI-Extended/actions/runs/37195806498)
-
-Open the workflow run, go to **Artifacts**, and download **`Releases-nonmac`**. The Android APK is inside that archive.
+For Android, choose the package matching your device architecture (`ARM`, `ARM64`, `X64`, or `X86`) and extract the APK from the downloaded ZIP.
 
 ### Actual testing status
 
@@ -148,7 +146,7 @@ Open the workflow run, go to **Artifacts**, and download **`Releases-nonmac`**. 
 >
 > The recommended first test is therefore the Android APK on a real device, especially the remote RAR → PKG flow through PKGStream.
 
-GitHub Actions artifacts are temporary and may expire according to the repository's artifact-retention policy.
+GitHub Actions is used to build and publish the release. The published release is the preferred place to obtain the current builds.
 
 ## Building
 
