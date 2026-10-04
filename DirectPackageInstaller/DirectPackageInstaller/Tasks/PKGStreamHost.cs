@@ -45,7 +45,8 @@ namespace DirectPackageInstaller.Tasks
             if (!File.Exists(script))
                 return false;
 
-            var bundledNode = Path.Combine(Path.GetDirectoryName(script)!, "node", OperatingSystem.IsWindows() ? "node.exe" : "node");
+            var pkgStreamRoot = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(script)!, ".."));
+            var bundledNode = Path.Combine(pkgStreamRoot, "node", OperatingSystem.IsWindows() ? "node.exe" : "node");
             var node = Environment.GetEnvironmentVariable("PKGSTREAM_NODE");
 
             if (string.IsNullOrWhiteSpace(node))
@@ -65,6 +66,10 @@ namespace DirectPackageInstaller.Tasks
             psi.Environment["HOST"] = "127.0.0.1";
             psi.Environment["PORT"] = "8080";
             psi.Environment["PKGSTREAM_ALLOW_REMOTE"] = "1";
+
+            var cacheRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DPI-Extended", "PKGStream", "cache");
+            try { Directory.CreateDirectory(cacheRoot); } catch { cacheRoot = Path.Combine(Path.GetTempPath(), "DPI-Extended", "PKGStream", "cache"); }
+            psi.Environment["PKGSTREAM_CACHE_ROOT"] = cacheRoot;
 
             try
             {
