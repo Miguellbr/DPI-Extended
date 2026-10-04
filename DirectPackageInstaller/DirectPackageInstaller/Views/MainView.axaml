@@ -102,6 +102,11 @@
                 <Separator></Separator>
                 <MenuItem Header="Install _All" Name="btnInstallAll"></MenuItem>
             </MenuItem>
+            <MenuItem Header="Queue" Name="QueueMenu">
+                <MenuItem Header="Add current source" Name="btnQueueAdd"></MenuItem>
+                <MenuItem Header="Start queue" Name="btnQueueStart"></MenuItem>
+                <MenuItem Header="Clear queue" Name="btnQueueClear"></MenuItem>
+            </MenuItem>
         </Menu>
 
         <Grid Grid.Row="1" Grid.ColumnSpan="2">
