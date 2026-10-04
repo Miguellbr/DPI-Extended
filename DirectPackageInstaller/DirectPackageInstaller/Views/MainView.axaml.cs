@@ -1507,10 +1507,25 @@ namespace DirectPackageInstaller.Views
             var Total = TransferProgressInfo.FormatBytes(Info.TotalBytes);
 
             if (Info.Completed)
-                return $"Sent {Sent} / {Total}";
+                return $"Completed: {Sent} / {Total}";
 
-            var Speed = TransferProgressInfo.FormatBytes(Info.BytesPerSecond);
-            return $"Sending {Sent} / {Total} ({Info.Percent:P1}) - {Speed}/s";
+            var SpeedBytes = Info.BytesPerSecond;
+            var Speed = TransferProgressInfo.FormatBytes(SpeedBytes);
+            var Elapsed = Info.UpdatedAt - Info.StartedAt;
+
+            string Eta = "ETA --:--";
+            if (SpeedBytes > 0 && Info.TotalBytes > Info.BytesSent)
+            {
+                var RemainingSeconds = (Info.TotalBytes - Info.BytesSent) / SpeedBytes;
+                if (RemainingSeconds >= 0 && RemainingSeconds < TimeSpan.MaxValue.TotalSeconds)
+                    Eta = $"ETA {TimeSpan.FromSeconds(RemainingSeconds):hh\\:mm\\:ss}";
+            }
+
+            var ElapsedText = Elapsed.TotalHours >= 1
+                ? Elapsed.ToString(@"hh\:mm\:ss")
+                : Elapsed.ToString(@"mm\:ss");
+
+            return $"Sending {Sent} / {Total} ({Info.Percent:P1}) - {Speed}/s - {Eta} - {ElapsedText} elapsed";
         }
         
         private async void RestartServer_OnClick(object? sender, RoutedEventArgs? e)
