@@ -86,6 +86,9 @@ namespace DirectPackageInstaller.Views
             
             btnInstallAll = this.Find<MenuItem>("btnInstallAll");
 
+            var InstallCurrent = this.Find<MenuItem>("btnInstallCurrent");
+            InstallCurrent.Click += BtnInstallCurrentOnClick;
+
             var QueueAdd = this.Find<MenuItem>("btnQueueAdd");
             var QueueStart = this.Find<MenuItem>("btnQueueStart");
             var QueueClear = this.Find<MenuItem>("btnQueueClear");
@@ -1150,6 +1153,14 @@ namespace DirectPackageInstaller.Views
             Status.Text = Files.Length == 0
                 ? $"Local library empty: {Folder}"
                 : $"Local library: {Files.Length} package(s) found";
+        }
+
+        private void BtnInstallCurrentOnClick(object? sender, RoutedEventArgs? e)
+        {
+            if (QueueRunning)
+                return;
+
+            App.Callback(() => BtnLoadOnClick(null, new RoutedEventArgs()));
         }
 
         private void BtnQueueAddOnClick(object? sender, RoutedEventArgs? e)

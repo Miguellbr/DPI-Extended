@@ -102,6 +102,10 @@
                 <Separator></Separator>
                 <MenuItem Header="Install _All" Name="btnInstallAll"></MenuItem>
             </MenuItem>
+            <MenuItem Header="Install" Name="InstallMenu">
+                <MenuItem Header="Install current source" Name="btnInstallCurrent"></MenuItem>
+                <Separator></Separator>
+            </MenuItem>
             <MenuItem Header="Queue" Name="QueueMenu">
                 <MenuItem Header="Add current source" Name="btnQueueAdd"></MenuItem>
                 <MenuItem Header="Start queue" Name="btnQueueStart"></MenuItem>
