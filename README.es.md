@@ -93,6 +93,18 @@ La separación es intencional:
 - **PKGStream** = acceso al archivo remoto y extracción/streaming del PKG
 - **GoldHEN/RPI/etaHEN** = mecanismos existentes de instalación en la consola
 
+## Descargas
+
+### Build más reciente
+
+La build más reciente contiene los paquetes para Windows, Linux, Android y macOS:
+
+[Descargar los artefactos mediante GitHub Actions](https://github.com/Miguellbr/DPI-Extended/actions/runs/37195806498)
+
+> **Estado de las pruebas:** el workflow de compilación está verde, pero los paquetes generados todavía no se han probado físicamente en Windows, Linux o macOS por el mantenedor, ya que no dispone de PC/Mac para realizar esas pruebas. El APK de Android también está pendiente de probarse en un dispositivo real.
+
+Los artefactos de GitHub Actions son temporales y pueden expirar según la política de retención del repositorio.
+
 ## Compilación
 
 1. Instala el SDK .NET 8.x.
