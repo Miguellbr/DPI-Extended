@@ -95,17 +95,15 @@ La separación es intencional:
 
 ## Descargas
 
-### Build más reciente
+### Release más reciente
 
-La build más reciente se completó correctamente en GitHub Actions y contiene los paquetes para Windows, Linux, Android y macOS.
+**DPI-Extended v0.1.0 ya está publicada como una GitHub Release.**
 
-**APK de Android:**
+[**Descargar la release más reciente — GitHub Releases**](https://github.com/Miguellbr/DPI-Extended/releases/latest)
 
-El APK está dentro del artefacto **`Releases-nonmac`** de la build siguiente:
+La release contiene builds para Windows, Linux, Android y macOS.
 
-[**Descargar APK y builds — GitHub Actions**](https://github.com/Miguellbr/DPI-Extended/actions/runs/37195806498)
-
-Abre la ejecución, ve a **Artifacts** y descarga **`Releases-nonmac`**. El APK de Android está dentro de ese archivo.
+Para Android, elige el paquete correspondiente a la arquitectura de tu dispositivo (`ARM`, `ARM64`, `X64` o `X86`) y extrae el APK del ZIP descargado.
 
 ### Estado real de las pruebas
 
@@ -119,7 +117,7 @@ Abre la ejecución, ve a **Artifacts** y descarga **`Releases-nonmac`**. El APK 
 >
 > Por eso, la primera prueba recomendada es instalar el APK en un Android real y comprobar especialmente el flujo RAR remoto → PKG mediante PKGStream.
 
-Los artefactos de GitHub Actions son temporales y pueden expirar según la política de retención del repositorio.
+GitHub Actions se utiliza para compilar y publicar la release. La release publicada es el lugar recomendado para obtener las builds actuales.
 
 ## Compilación
 
