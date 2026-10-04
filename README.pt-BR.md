@@ -122,7 +122,15 @@ Windows, Linux e Android usam o runtime .NET 8 de acordo com o pacote do alvo. A
 
 ## Downloads
 
-Os artefatos de build são atualmente produzidos pelo GitHub Actions. Os links de release serão adicionados quando os pacotes de distribuição forem publicados.
+### Build mais recente
+
+A build mais recente contém os pacotes para Windows, Linux, Android e macOS:
+
+[Baixar os artefatos pelo GitHub Actions](https://github.com/Miguellbr/DPI-Extended/actions/runs/37195806498)
+
+> **Status dos testes:** o workflow de build está verde, mas os pacotes gerados ainda não foram testados fisicamente em Windows, Linux ou macOS pelo mantenedor, pois ele não possui PC/Mac disponível para testes. O APK Android também aguarda teste em um dispositivo real.
+
+Os artefatos do GitHub Actions são temporários e podem expirar de acordo com a política de retenção do repositório.
 
 ## Compilação
 
