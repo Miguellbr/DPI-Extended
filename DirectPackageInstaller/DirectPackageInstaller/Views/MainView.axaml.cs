@@ -63,7 +63,6 @@ namespace DirectPackageInstaller.Views
         private readonly Queue<string> InstallQueue = new Queue<string>();
         private bool QueueRunning;
 
-        private MenuItem? LibraryMenu;
         private const string LocalLibraryFolderName = "Library";
 
         public MainViewModel? Model => (MainViewModel?)DataContext;
