@@ -99,3 +99,31 @@ jobs:
         with:
           name: Releases
           path: Release
+
+  release:
+    name: Publish GitHub Release
+    needs: collect
+    if: github.event_name == 'push' && github.ref == 'refs/heads/DN8'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Releases
+          path: Release
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.0
+          name: DPI Extended v0.1.0
+          body: |
+            First public test release of DPI Extended.
+
+            Includes the Windows, Linux and Android builds produced by the CI workflow.
+          files: |
+            Release/**
+          make_latest: true
+          prerelease: false
+          overwrite_files: true
