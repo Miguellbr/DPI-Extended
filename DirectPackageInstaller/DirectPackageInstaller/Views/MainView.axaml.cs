@@ -44,7 +44,7 @@ namespace DirectPackageInstaller.Views
 
         private bool BadHostAlert;
         
-        private Source InputType = Source.NONE;
+        private Source InputType = global::DirectPackageInstaller.Source.NONE;
 
         private string? LastForcedSource = null;
 
@@ -1143,7 +1143,7 @@ namespace DirectPackageInstaller.Views
                         return;
 
                     Model.CurrentURL = FilePath;
-                    await BtnLoadOnClick(null, new RoutedEventArgs());
+                    BtnLoadOnClick(null, new RoutedEventArgs());
                 };
 
                 LibraryMenu.Items.Insert(0, Item);
@@ -1164,14 +1164,14 @@ namespace DirectPackageInstaller.Views
 
         private void BtnQueueAddOnClick(object? sender, RoutedEventArgs? e)
         {
-            var Source = Model?.CurrentURL;
-            if (string.IsNullOrWhiteSpace(Source))
+            var QueueSource = Model?.CurrentURL;
+            if (string.IsNullOrWhiteSpace(QueueSource))
             {
                 _ = MessageBox.ShowAsync(Parent, "Enter or select a package source first.", "DirectPackageInstaller", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            InstallQueue.Enqueue(Source);
+            InstallQueue.Enqueue(QueueSource);
             Status.Text = $"Queue: {InstallQueue.Count} package(s) waiting";
         }
 
@@ -1194,8 +1194,8 @@ namespace DirectPackageInstaller.Views
             {
                 while (InstallQueue.Count > 0)
                 {
-                    var Source = InstallQueue.Dequeue();
-                    Status.Text = $"Queue: loading {Path.GetFileName(Source)}";
+                    var QueueSource = InstallQueue.Dequeue();
+                    Status.Text = $"Queue: loading {Path.GetFileName(QueueSource)}";
 
                     InputType = Source.NONE;
                     PKGStreamInstallUrl = null;
@@ -1204,15 +1204,15 @@ namespace DirectPackageInstaller.Views
                     PKGStream = null;
 
                     if (Model != null)
-                        Model.CurrentURL = Source;
+                        Model.CurrentURL = QueueSource;
 
                     BtnLoadOnClick(null, new RoutedEventArgs());
                     while (!btnLoad.IsEnabled)
                         await Task.Delay(100);
 
-                    if (InputType == Source.NONE)
+                    if (InputType == global::DirectPackageInstaller.Source.NONE)
                     {
-                        Status.Text = $"Queue: failed to load {Path.GetFileName(Source)}";
+                        Status.Text = $"Queue: failed to load {Path.GetFileName(QueueSource)}";
                         continue;
                     }
 
