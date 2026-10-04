@@ -118,15 +118,26 @@ AndroidPublish (){
    fi
    
    dotnet workload restore
-   
-   Publish $1
-   
-   rm Release/$1.zip
+
+   echo "Building Android for $1"
+   dotnet restore -r $1 DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj
+   dotnet publish DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj -c Release -r $1
+
    ANDROID_PUBLISH_DIR="DirectPackageInstaller/DirectPackageInstaller.Android/bin/Release/net8.0-android/$1/publish"
+   APK_FOUND=0
    for apk in "$ANDROID_PUBLISH_DIR"/*.apk; do
-      mv "$apk" "$ANDROID_PUBLISH_DIR/DPI-Extended.apk"
-      break
+      if [ -f "$apk" ]; then
+         mv "$apk" "$ANDROID_PUBLISH_DIR/DPI-Extended.apk"
+         APK_FOUND=1
+         break
+      fi
    done
+
+   if [ "$APK_FOUND" -ne 1 ] || [ ! -f "$ANDROID_PUBLISH_DIR/DPI-Extended.apk" ]; then
+      echo "ANDROID APK NOT FOUND: $ANDROID_PUBLISH_DIR"
+      exit 1
+   fi
+
    zip -j -9 -r Release/$1.zip "$ANDROID_PUBLISH_DIR/DPI-Extended.apk"
 }
 
@@ -300,12 +311,22 @@ IF NOT EXIST "%AndroidNdkDirectory%ndk-build.cmd" (
 	echo ANDROID NDK NOT FOUND
 	goto :eof
 )
-call :Build %1
-del /s /q .\Release\%1.zip
-for %%F in (".\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release\net8.0-android\%1\publish\*.apk") do (
-  move /Y "%%~fF" ".\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release\net8.0-android\%1\publish\DPI-Extended.apk"
-  goto :AndroidApkRenamed
+echo Building Android for %1
+dotnet restore -r %1 .\DirectPackageInstaller\DirectPackageInstaller.Android\DirectPackageInstaller.Android.csproj
+dotnet publish .\DirectPackageInstaller\DirectPackageInstaller.Android\DirectPackageInstaller.Android.csproj -c Release -r %1
+set "ANDROID_PUBLISH_DIR=.\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release\net8.0-android\%1\publish"
+set "APK_FOUND=0"
+for %%F in ("%ANDROID_PUBLISH_DIR%\*.apk") do (
+  if exist "%%~fF" (
+    move /Y "%%~fF" "%ANDROID_PUBLISH_DIR%\DPI-Extended.apk"
+    set "APK_FOUND=1"
+    goto :AndroidApkRenamed
+  )
 )
 :AndroidApkRenamed
-powershell Compress-Archive .\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release\net8.0-android\%1\publish\DPI-Extended.apk .\Release\%1.zip
+if "%APK_FOUND%"=="0" (
+  echo ANDROID APK NOT FOUND: %ANDROID_PUBLISH_DIR%
+  exit /b 1
+)
+powershell Compress-Archive -Path "%ANDROID_PUBLISH_DIR%\DPI-Extended.apk" -DestinationPath ".\Release\%1.zip" -Force
 goto :eof
