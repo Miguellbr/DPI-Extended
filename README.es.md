@@ -97,11 +97,27 @@ La separación es intencional:
 
 ### Build más reciente
 
-La build más reciente contiene los paquetes para Windows, Linux, Android y macOS:
+La build más reciente se completó correctamente en GitHub Actions y contiene los paquetes para Windows, Linux, Android y macOS.
 
-[Descargar los artefactos mediante GitHub Actions](https://github.com/Miguellbr/DPI-Extended/actions/runs/37195806498)
+**APK de Android:**
 
-> **Estado de las pruebas:** el workflow de compilación está verde, pero los paquetes generados todavía no se han probado físicamente en Windows, Linux o macOS por el mantenedor, ya que no dispone de PC/Mac para realizar esas pruebas. El APK de Android también está pendiente de probarse en un dispositivo real.
+El APK está dentro del artefacto **`Releases-nonmac`** de la build siguiente:
+
+[**Descargar APK y builds — GitHub Actions**](https://github.com/Miguellbr/DPI-Extended/actions/runs/37195806498)
+
+Abre la ejecución, ve a **Artifacts** y descarga **`Releases-nonmac`**. El APK de Android está dentro de ese archivo.
+
+### Estado real de las pruebas
+
+> **IMPORTANTE:** que el workflow esté en verde significa que los paquetes se compilaron correctamente. **No significa que las aplicaciones hayan sido probadas en dispositivos reales**.
+>
+> - **Android:** el APK todavía está pendiente de probarse en un dispositivo Android real.
+> - **Windows:** todavía no se ha probado físicamente.
+> - **Linux:** todavía no se ha probado físicamente.
+> - **macOS:** todavía no se ha probado físicamente.
+> - El mantenedor actualmente **no dispone de PC/Mac** para realizar estas pruebas.
+>
+> Por eso, la primera prueba recomendada es instalar el APK en un Android real y comprobar especialmente el flujo RAR remoto → PKG mediante PKGStream.
 
 Los artefactos de GitHub Actions son temporales y pueden expirar según la política de retención del repositorio.
 
