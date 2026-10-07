@@ -514,6 +514,8 @@ namespace DirectPackageInstaller
                 BrowserCapturedUrl?.Invoke(url);
         }
 
+        public static Action? OpenBrowser;
+        
         public static Action<string>? InstallApk;
 
         public static Func<string[]>? GetIPAddresses;
