@@ -38,8 +38,8 @@ has_target() {
 
 Publish () {
    echo "Building for $1"
-   dotnet restore -r $1
-   dotnet publish -c Release -r $1 $2
+   dotnet restore -r $1 DirectPackageInstaller/DirectPackageInstaller.Desktop/DirectPackageInstaller.Desktop.csproj
+   dotnet publish DirectPackageInstaller/DirectPackageInstaller.Desktop/DirectPackageInstaller.Desktop.csproj -c Release -r $1 --no-restore $2
    case "$1" in
       win-*|linux-*|osx-*) ./Tools/prepare-pkgstream-runtime.sh $1 DirectPackageInstaller/DirectPackageInstaller.Desktop/bin/Release/net8.0/$1/publish ;;
    esac
@@ -125,7 +125,7 @@ AndroidPublish (){
 
    echo "Building Android for $1"
    dotnet restore -r $1 DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj
-   dotnet publish DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj -c Release -r $1
+   dotnet publish DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj -c Release -r $1 --no-restore
 
    ANDROID_OUTPUT_DIR="DirectPackageInstaller/DirectPackageInstaller.Android/bin/Release"
    APK_SOURCE="$(find "$ANDROID_OUTPUT_DIR" -type f -name '*.apk' -print -quit)"
