@@ -20,6 +20,7 @@ namespace DirectPackageInstaller.Android
         private Button _refresh = null!;
         private Button _ublock = null!;
         private string _lastCandidate = "";
+        private string _currentPageUrl = "";
         private bool _uBlockEnabled = true;
         private readonly UBlockEngine _uBlock = new();
 
@@ -106,7 +107,7 @@ namespace DirectPackageInstaller.Android
             _webView.LoadUrl(url);
         }
 
-        private bool IsBlocked(string? url) => _uBlockEnabled && _uBlock.IsBlocked(url);
+        private bool IsBlocked(string? url, string type = "other") => _uBlockEnabled && _uBlock.IsBlocked(url, _currentPageUrl, type);
 
         private void Capture(string? url)
         {
@@ -143,7 +144,7 @@ namespace DirectPackageInstaller.Android
             public override bool ShouldOverrideUrlLoading(WebView? view, IWebResourceRequest? request)
             {
                 var url = request?.Url?.ToString();
-                if (_owner.IsBlocked(url)) return true;
+                if (_owner.IsBlocked(url, InferType(url))) return true;
                 if (url != null) _owner.Capture(url);
                 return false;
             }
@@ -151,7 +152,7 @@ namespace DirectPackageInstaller.Android
             public override void OnPageFinished(WebView? view, string? url)
             {
                 base.OnPageFinished(view, url);
-                if (url != null) _owner._address.Text = url;
+                if (url != null) { _owner._address.Text = url; _owner._currentPageUrl = url; }
 
                 const string script = @"(function(){
                     if (window.__dpiCaptureInstalled) return;
@@ -175,10 +176,21 @@ namespace DirectPackageInstaller.Android
                 view?.EvaluateJavascript(script, null);
             }
 
+            private static string InferType(string? url)
+            {
+                if (string.IsNullOrWhiteSpace(url)) return "other";
+                var path = url.Split('?')[0].ToLowerInvariant();
+                if (path.EndsWith(".js") || path.EndsWith(".mjs")) return "script";
+                if (path.EndsWith(".css")) return "stylesheet";
+                if (path.EndsWith(".png") || path.EndsWith(".jpg") || path.EndsWith(".jpeg") || path.EndsWith(".gif") || path.EndsWith(".webp") || path.EndsWith(".svg")) return "image";
+                if (path.EndsWith(".woff") || path.EndsWith(".woff2") || path.EndsWith(".ttf")) return "font";
+                return "other";
+            }
+
             public override WebResourceResponse? ShouldInterceptRequest(WebView? view, IWebResourceRequest? request)
             {
                 var url = request?.Url?.ToString();
-                if (_owner.IsBlocked(url))
+                if (_owner.IsBlocked(url, InferType(url)))
                     return new WebResourceResponse("text/plain", "utf-8", null);
                 if (url != null) _owner.Capture(url);
                 return null;
