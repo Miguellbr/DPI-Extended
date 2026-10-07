@@ -37,7 +37,7 @@
 		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.8" />
 		<PackageReference Include="Avalonia.Native" Version="11.3.8" />
 		<PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.14" />
-		<PackageReference Include="Jint" Version="4.0.0" />
+		<PackageReference Include="Jint" Version="4.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>
