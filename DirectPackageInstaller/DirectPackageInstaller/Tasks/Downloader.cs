@@ -142,7 +142,7 @@ namespace DirectPackageInstaller.Tasks
         public string TempFile;
         public string Url;
         public Func<Stream> OpenRead;
-        public SegmentedStream SegmentedRead;
+        public Stream SegmentedRead;
         public bool Running;
 
         public DownloaderTask(string url, string tempFile, Func<Stream> openRead)
@@ -186,7 +186,12 @@ namespace DirectPackageInstaller.Tasks
                 if (SegmentedRead == null)
                     return *ReadyLength;
 
-                return SegmentedRead?.ScanProgress ?? 0;
+                return SegmentedRead switch
+                {
+                    SegmentedStream segmented => segmented.ScanProgress,
+                    RamSegmentedStream ram => ram.Position,
+                    _ => 0
+                };
             }
             set => *ReadyLength = value;
         }
