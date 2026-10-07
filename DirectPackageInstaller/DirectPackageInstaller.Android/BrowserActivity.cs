@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Android.App;
 using Android.OS;
@@ -23,7 +21,7 @@ namespace DirectPackageInstaller.Android
         private Button _ublock = null!;
         private string _lastCandidate = "";
         private bool _uBlockEnabled = true;
-        private readonly UBlockFilter _uBlock = new();
+        private readonly UBlockEngine _uBlock = new();
 
         protected override async void OnCreate(Bundle? savedInstanceState)
         {
@@ -210,72 +208,6 @@ namespace DirectPackageInstaller.Android
             [JavascriptInterface]
             [Export("capture")]
             public void Capture(string? url) => _owner.Capture(url);
-        }
-
-        private sealed class UBlockFilter
-        {
-            private readonly HashSet<string> _domains = new(StringComparer.OrdinalIgnoreCase);
-            public int Count => _domains.Count;
-
-            public async Task LoadAsync()
-            {
-                using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(20);
-                var urls = new[]
-                {
-                    "https://ublockorigin.github.io/uAssetsCDN/filters/filters.min.txt",
-                    "https://ublockorigin.github.io/uAssetsCDN/filters/badware.min.txt",
-                    "https://ublockorigin.github.io/uAssetsCDN/filters/privacy.min.txt",
-                    "https://easylist.to/easylist/easylist.txt",
-                    "https://easylist.to/easylist/easyprivacy.txt"
-                };
-
-                foreach (var listUrl in urls)
-                {
-                    try
-                    {
-                        var raw = await client.GetStringAsync(listUrl);
-                        Parse(raw);
-                    }
-                    catch { }
-                }
-            }
-
-            private void Parse(string raw)
-            {
-                foreach (var line0 in raw.Split('\n'))
-                {
-                    var line = line0.Trim();
-                    if (line.Length == 0 || line[0] == '!' || line[0] == '[') continue;
-
-                    if (line.StartsWith("||", StringComparison.Ordinal))
-                    {
-                        var value = line.Substring(2);
-                        var end = value.IndexOfAny(new[] { '^', '/', '$', '*' });
-                        if (end >= 0) value = value.Substring(0, end);
-                        if (value.Length > 2 && value.IndexOf('.') > 0 && !value.Contains(' '))
-                            _domains.Add(value.Trim('.'));
-                    }
-                    else if (!line.StartsWith("#") && line.Split(' ').Length >= 2)
-                    {
-                        var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                        if (parts.Length >= 2 && parts[0] is "0.0.0.0" or "127.0.0.1")
-                            _domains.Add(parts[1].Trim('.'));
-                    }
-                }
-            }
-
-            public bool IsBlocked(string? url)
-            {
-                if (string.IsNullOrWhiteSpace(url)) return false;
-                if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
-                var host = uri.Host.TrimEnd('.');
-                foreach (var domain in _domains)
-                    if (host.Equals(domain, StringComparison.OrdinalIgnoreCase) ||
-                        host.EndsWith("." + domain, StringComparison.OrdinalIgnoreCase))
-                        return true;
-                return false;
-            }
         }
 
         protected override void OnDestroy()
