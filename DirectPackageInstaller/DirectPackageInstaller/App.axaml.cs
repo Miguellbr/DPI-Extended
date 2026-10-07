@@ -506,6 +506,14 @@ namespace DirectPackageInstaller
 
         internal static string SettingsPath => Path.Combine(WorkingDirectory, "Settings.ini");
 
+        public static event Action<string>? BrowserCapturedUrl;
+        
+        public static void PublishBrowserUrl(string url)
+        {
+            if (!string.IsNullOrWhiteSpace(url))
+                BrowserCapturedUrl?.Invoke(url);
+        }
+
         public static Action<string>? InstallApk;
 
         public static Func<string[]>? GetIPAddresses;
