@@ -19,6 +19,7 @@ namespace DirectPackageInstaller.Android
         private Button _refresh = null!;
         private Button _ublock = null!;
         private string _lastCandidate = "";
+        private long _lastCandidateAt;
         private string _currentPageUrl = "";
         private bool _uBlockEnabled = true;
         private bool _autoCaptureEnabled = true;
@@ -127,7 +128,12 @@ namespace DirectPackageInstaller.Android
             if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
                 !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return;
 
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            if (string.Equals(_lastCandidate, url, StringComparison.Ordinal) && now - _lastCandidateAt < 1500)
+                return;
+
             _lastCandidate = url;
+            _lastCandidateAt = now;
             RunOnUiThread(() =>
                 Toast.MakeText(this, "Download capturado. Toque em Use.", ToastLength.Short).Show());
         }
