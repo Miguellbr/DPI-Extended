@@ -105,20 +105,25 @@ namespace DirectPackageInstaller.Tasks
 
             try
             {
-                This.SegmentedRead = new SegmentedStream(() =>
+                if (This.Url.EndsWith(".json", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (This.Url.EndsWith(".json", StringComparison.InvariantCultureIgnoreCase))
+                    This.SegmentedRead = new SegmentedStream(() =>
                     {
                         if (This.Url.IsFilePath())
-                        {
                             return SplitHelper.OpenLocalJSON(This.Url);
-                        }
 
                         return SplitHelper.OpenRemoteJSON(This.Url);
-                    }
-                    
-                    return new FileHostStream(This.Url);
-                }, null);
+                    }, null);
+                }
+                else
+                {
+                    // Diskless path: only a bounded RAM window is retained.
+                    This.SegmentedRead = new RamSegmentedStream(
+                        () => new FileHostStream(This.Url),
+                        segmentSize: 4 * 1024 * 1024,
+                        maxCachedSegments: 8,
+                        concurrency: 4);
+                }
                 This.OpenRead = () => new SegmentedStreamReader(This.SegmentedRead);
             }
             catch (Exception ex)
