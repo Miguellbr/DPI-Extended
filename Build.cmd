@@ -136,10 +136,23 @@ AndroidPublish () {
       echo "ANDROID APKSIGNER NOT FOUND"
       exit 1
    fi
-   "$APKSIGNER" sign --ks "Release/.android-test.keystore" --ks-pass pass:android --key-pass pass:android --out "$APK_DIR/DPI-Extended-signed.apk" "$APK_DIR/DPI-Extended.apk"
+   if ! "$APKSIGNER" sign --ks "Release/.android-test.keystore" --ks-pass pass:android --key-pass pass:android --out "$APK_DIR/DPI-Extended-signed.apk" "$APK_DIR/DPI-Extended.apk"; then
+      echo "ANDROID APK SIGNING FAILED for $1"
+      exit 1
+   fi
+   if [ ! -f "$APK_DIR/DPI-Extended-signed.apk" ]; then
+      echo "ANDROID SIGNED APK NOT FOUND for $1"
+      exit 1
+   fi
    mv "$APK_DIR/DPI-Extended-signed.apk" "$APK_DIR/DPI-Extended.apk"
-   "$APKSIGNER" verify --verbose "$APK_DIR/DPI-Extended.apk"
-   zip -j -9 -r Release/$1.zip "$APK_DIR/DPI-Extended.apk"
+   if ! "$APKSIGNER" verify --verbose "$APK_DIR/DPI-Extended.apk"; then
+      echo "ANDROID APK VERIFICATION FAILED for $1"
+      exit 1
+   fi
+   if ! zip -j -9 -r "Release/$1.zip" "$APK_DIR/DPI-Extended.apk"; then
+      echo "ANDROID APK ARCHIVE FAILED for $1"
+      exit 1
+   fi
 }
 
 if has_target win; then
