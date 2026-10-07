@@ -31,6 +31,34 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Prepare uBlock Origin core
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Bundle uBO core for Android
+        run: |
+          mkdir -p DirectPackageInstaller/DirectPackageInstaller.Android/Assets
+          tmp_dir="$(mktemp -d)"
+          cd "$tmp_dir"
+          npm init -y >/dev/null 2>&1
+          npm install @gorhill/ubo-core@0.1.30 esbuild >/dev/null 2>&1
+          npx esbuild node_modules/@gorhill/ubo-core/index.js --bundle --format=iife --global-name=UboCore --outfile="$GITHUB_WORKSPACE/DirectPackageInstaller/DirectPackageInstaller.Android/Assets/ubocore.bundle.js"
+          cat >> "$GITHUB_WORKSPACE/DirectPackageInstaller/DirectPackageInstaller.Android/Assets/ubocore.bundle.js" <<'EOF'
+          globalThis.DpiUbo = {
+            initialize: async function(json) {
+              const lists = JSON.parse(json);
+              const engine = await UboCore.StaticNetFilteringEngine.create();
+              await engine.useLists(lists);
+              globalThis.DpiUboMatch = function(url, originURL, type) {
+                return engine.matchRequest({ url, originURL, type });
+              };
+              globalThis.DpiUboRuleCount = lists.length;
+            }
+          };
+          EOF
+          cd "$GITHUB_WORKSPACE"
+
       - name: Building
         env:
           BUILD_TARGETS: win,linux,android
