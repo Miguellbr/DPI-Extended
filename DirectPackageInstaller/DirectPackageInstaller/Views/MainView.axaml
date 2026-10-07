@@ -24,6 +24,8 @@
 
         <Menu Grid.ColumnSpan="2">
             <MenuItem Header="_Options">
+                <MenuItem Header="_Browser" Name="btnBrowser" IsVisible="False"/>
+
                 <MenuItem Header="_Proxy Downloads" Name="btnProxyDownload">
                     <MenuItem.Icon>
                         <CheckBox BorderThickness="0" IsChecked="{Binding ProxyMode, Mode=TwoWay}"/>
