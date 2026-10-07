@@ -43,20 +43,58 @@ jobs:
           cd "$tmp_dir"
           npm init -y >/dev/null 2>&1
           npm install @gorhill/ubo-core@0.1.30 esbuild >/dev/null 2>&1
-          npx esbuild node_modules/@gorhill/ubo-core/index.js --bundle --format=iife --global-name=UboCore --outfile="$GITHUB_WORKSPACE/DirectPackageInstaller/DirectPackageInstaller.Android/Assets/ubocore.bundle.js"
-          cat >> "$GITHUB_WORKSPACE/DirectPackageInstaller/DirectPackageInstaller.Android/Assets/ubocore.bundle.js" <<'EOF'
+          cat > dpi-ubo-entry.js <<'EOF'
+          import * as sfp from '@gorhill/ubo-core/js/static-filtering-parser.js';
+          import { CompiledListReader, CompiledListWriter } from '@gorhill/ubo-core/js/static-filtering-io.js';
+          import { FilteringContext } from '@gorhill/ubo-core/js/filtering-context.js';
+          import { LineIterator } from '@gorhill/ubo-core/js/text-utils.js';
+          import snfe from '@gorhill/ubo-core/js/static-net-filtering.js';
+
+          function compileList({ name, raw }, compiler, writer) {
+            if (typeof raw !== 'string' || raw === '') return;
+            const lineIter = new LineIterator(raw);
+            if (name) writer.properties.set('name', name);
+            const parser = new sfp.AstFilterParser({ maxTokenLength: snfe.MAX_TOKEN_LENGTH });
+            while (lineIter.eot() === false) {
+              let line = lineIter.next();
+              while (line.endsWith(' \\')) {
+                if (lineIter.peek(4) !== '    ') break;
+                line = line.slice(0, -2).trim() + lineIter.next().trim();
+              }
+              parser.parse(line);
+              if (parser.isFilter() === false || parser.isNetworkFilter() === false) continue;
+              compiler.compile(parser, writer);
+            }
+            return writer.toString();
+          }
+
+          async function useLists(lists) {
+            snfe.reset();
+            const compiler = snfe.createCompiler();
+            for (const list of lists) {
+              const writer = new CompiledListWriter();
+              const compiled = compileList(list, compiler, writer);
+              if (compiled) snfe.fromCompiled(new CompiledListReader(compiled));
+            }
+            snfe.freeze();
+            snfe.optimize();
+          }
+
+          const fctx = new FilteringContext();
+
           globalThis.DpiUbo = {
             initialize: async function(json) {
               const lists = JSON.parse(json);
-              const engine = await UboCore.StaticNetFilteringEngine.create();
-              await engine.useLists(lists);
+              await useLists(lists);
               globalThis.DpiUboMatch = function(url, originURL, type) {
-                return engine.matchRequest({ url, originURL, type });
+                return snfe.matchRequest(fctx.fromDetails({ url, originURL, type }));
               };
               globalThis.DpiUboRuleCount = lists.length;
             }
           };
           EOF
+          npx esbuild dpi-ubo-entry.js --bundle --format=iife --outfile="$GITHUB_WORKSPACE/DirectPackageInstaller/DirectPackageInstaller.Android/Assets/ubocore.bundle.js"
+          rm -f dpi-ubo-entry.js
           cd "$GITHUB_WORKSPACE"
 
       - name: Building
