@@ -136,7 +136,7 @@ AndroidPublish () {
       echo "ANDROID APKSIGNER NOT FOUND"
       exit 1
    fi
-   "$APKSIGNER" sign --ks "Release/.android-test.keystore" --ks-pass pass:android --key-pass android --out "$APK_DIR/DPI-Extended-signed.apk" "$APK_DIR/DPI-Extended.apk"
+   "$APKSIGNER" sign --ks "Release/.android-test.keystore" --ks-pass pass:android --key-pass pass:android --out "$APK_DIR/DPI-Extended-signed.apk" "$APK_DIR/DPI-Extended.apk"
    mv "$APK_DIR/DPI-Extended-signed.apk" "$APK_DIR/DPI-Extended.apk"
    "$APKSIGNER" verify --verbose "$APK_DIR/DPI-Extended.apk"
    zip -j -9 -r Release/$1.zip "$APK_DIR/DPI-Extended.apk"
@@ -145,8 +145,7 @@ AndroidPublish () {
 if has_target win; then
    WINPublish win-x64
    WINPublish win-x86
-   WINPublish win-arm
-   WINPublish win-arm64
+      WINPublish win-arm64
 fi
 
 if has_target linux; then
@@ -170,7 +169,6 @@ cd Release
 if has_target win; then
    mv win-x64.zip Windows-X64.zip
    mv win-x86.zip Windows-X86.zip
-   mv win-arm.zip Windows-ARM.zip
    mv win-arm64.zip Windows-ARM64.zip
 fi
 
