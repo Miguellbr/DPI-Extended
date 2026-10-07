@@ -37,9 +37,14 @@
 		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.8" />
 		<PackageReference Include="Avalonia.Native" Version="11.3.8" />
 		<PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.14" />
+		<PackageReference Include="Jint" Version="4.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\DirectPackageInstaller\DirectPackageInstaller.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AndroidAsset Include="Assets\ubocore.bundle.js" Condition="Exists('Assets\ubocore.bundle.js')" />
 	</ItemGroup>
 </Project>
