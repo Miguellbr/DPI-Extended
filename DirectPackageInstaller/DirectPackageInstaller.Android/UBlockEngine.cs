@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Android.App;
 using Jint;
-using Jint.Native;
 
 namespace DirectPackageInstaller.Android
 {
@@ -19,8 +18,8 @@ namespace DirectPackageInstaller.Android
     internal sealed class UBlockEngine : IDisposable
     {
         private readonly SemaphoreSlim _gate = new(1, 1);
+        private readonly object _engineLock = new();
         private Engine? _engine;
-        private JsValue? _match;
         private int _count;
 
         public int Count => _count;
@@ -47,17 +46,22 @@ namespace DirectPackageInstaller.Android
 
                 var lists = await FetchListsAsync().ConfigureAwait(false);
                 var listsJson = JsonSerializer.Serialize(lists);
-                var init = engine.Invoke("DpiUbo.initialize", listsJson);
-                await init.UnwrapIfPromiseAsync().ConfigureAwait(false);
 
-                _engine = engine;
-                _match = engine.GetValue("DpiUboMatch");
-                _count = engine.GetValue("DpiUboRuleCount").AsNumber() is var n ? (int)n : 0;
+                // Jint 4.2 exposes async JavaScript invocation through InvokeAsync.
+                // DpiUbo.initialize() returns a Promise because uBO list compilation
+                // is asynchronous.
+                await engine.InvokeAsync("DpiUbo.initialize", listsJson).ConfigureAwait(false);
+
+                _count = (int)engine.GetValue("DpiUboRuleCount").AsNumber();
+
+                lock (_engineLock)
+                {
+                    _engine = engine;
+                }
             }
             catch
             {
-                _engine?.Dispose();
-                _engine = null;
+                engineDispose(_engine);
                 throw;
             }
             finally
@@ -68,24 +72,47 @@ namespace DirectPackageInstaller.Android
 
         public bool IsBlocked(string? url, string? originUrl, string type = "other")
         {
-            if (string.IsNullOrWhiteSpace(url) || _engine == null || _match == null)
+            if (string.IsNullOrWhiteSpace(url))
+                return false;
+
+            Engine? engine;
+            lock (_engineLock)
+            {
+                engine = _engine;
+            }
+
+            if (engine == null)
                 return false;
 
             try
             {
                 var origin = string.IsNullOrWhiteSpace(originUrl) ? url : originUrl;
-                var result = _match.Value.Call(
-                    JsValue.Undefined,
-                    url,
-                    origin,
-                    type);
 
-                return result.AsNumber() == 1;
+                lock (_engineLock)
+                {
+                    if (!ReferenceEquals(engine, _engine))
+                        return false;
+
+                    // uBO's matchRequest() returns a numeric result. A value of 1
+                    // represents a blocked request for the filtering context used here.
+                    var result = engine.Invoke(
+                        "DpiUboMatch",
+                        url,
+                        origin,
+                        type);
+
+                    return result.AsNumber() == 1;
+                }
             }
             catch
             {
                 return false;
             }
+        }
+
+        private static void engineDispose(Engine? engine)
+        {
+            engine?.Dispose();
         }
 
         private static async Task<List<Dictionary<string, string>>> FetchListsAsync()
@@ -119,8 +146,11 @@ namespace DirectPackageInstaller.Android
         public void Dispose()
         {
             _gate.Dispose();
-            _engine?.Dispose();
-            _engine = null;
+            lock (_engineLock)
+            {
+                _engine?.Dispose();
+                _engine = null;
+            }
         }
     }
 }
