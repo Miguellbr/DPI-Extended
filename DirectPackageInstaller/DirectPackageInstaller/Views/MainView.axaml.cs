@@ -110,6 +110,7 @@ namespace DirectPackageInstaller.Views
             btnDHCPService = this.Find<MenuItem>("btnDHCPService");
             btnExit = this.Find<MenuItem>("btnExit");
             btnLoad = this.Find<Button>("btnLoad");
+            var btnBrowser = this.Find<MenuItem>("btnBrowser");
             
             btnInstallAll.Click += BtnInstallAllOnClick;
             btnRestartServer.Click += RestartServer_OnClick;
@@ -123,6 +124,9 @@ namespace DirectPackageInstaller.Views
             btnDHCPService.Click += BtnDHCPServiceOnClick;
 
             btnLoad.Click += BtnLoadOnClick;
+            btnBrowser.Click += BtnBrowserOnClick;
+            btnBrowser.IsVisible = App.IsAndroid;
+            App.BrowserCapturedUrl += OnBrowserCapturedUrl;
 
             tbURL.GotFocus += tbURLOnGotFocus;
 
@@ -478,6 +482,26 @@ namespace DirectPackageInstaller.Views
                 else
                     Model.DHCPService = false;
             }
+        }
+
+        private void OnBrowserCapturedUrl(string url)
+        {
+            Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (Model == null)
+                    return;
+
+                Model.CurrentURL = url;
+                BtnLoadOnClick(null, null);
+            });
+        }
+
+        private void BtnBrowserOnClick(object? sender, RoutedEventArgs e)
+        {
+            if (!App.IsAndroid)
+                return;
+
+            DirectPackageInstaller.Android.BrowserLauncher.Open();
         }
 
         private async void BtnLoadOnClick(object? sender, RoutedEventArgs e)
