@@ -31,6 +31,7 @@ namespace DirectPackageInstaller.Android
     public class MainActivity : AvaloniaMainActivity<App>
     {
         public static int Instances = 0;
+        internal static MainActivity? Current;
         public ClipboardManager? ClipboardManager;
 
         protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
@@ -45,6 +46,12 @@ namespace DirectPackageInstaller.Android
         protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+            Current = this;
+            App.OpenBrowser = () =>
+            {
+                var intent = new Intent(this, typeof(BrowserActivity));
+                StartActivity(intent);
+            };
 
             if (Instances++ == 0)
             {
@@ -298,6 +305,12 @@ namespace DirectPackageInstaller.Android
 
         protected override void OnDestroy()
         {
+            if (ReferenceEquals(Current, this))
+            {
+                Current = null;
+                App.OpenBrowser = null;
+            }
+
             Instances--;
             
             if (Instances <= 0)
