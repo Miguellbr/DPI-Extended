@@ -6,6 +6,7 @@ using Android.Widget;
 using Android.Views;
 using Android.Graphics;
 using Android.Content;
+using Java.Interop;
 
 namespace DirectPackageInstaller.Android
 {
@@ -117,6 +118,35 @@ namespace DirectPackageInstaller.Android
                     _owner.Capture(request.Url.ToString());
 
                 return false;
+            }
+
+            public override void OnPageFinished(WebView? view, string? url)
+            {
+                base.OnPageFinished(view, url);
+
+                const string script = @"(function(){
+                    if (window.__dpiCaptureInstalled) return;
+                    window.__dpiCaptureInstalled = true;
+
+                    const oldFetch = window.fetch;
+                    window.fetch = function(input, init) {
+                        try {
+                            const u = typeof input === 'string' ? input : input.url;
+                            if (window.DpiBridge) window.DpiBridge.capture(String(u));
+                        } catch (_) {}
+                        return oldFetch.apply(this, arguments);
+                    };
+
+                    const oldOpen = XMLHttpRequest.prototype.open;
+                    XMLHttpRequest.prototype.open = function(method, url) {
+                        try {
+                            if (window.DpiBridge) window.DpiBridge.capture(String(url));
+                        } catch (_) {}
+                        return oldOpen.apply(this, arguments);
+                    };
+                })();";
+
+                view?.EvaluateJavascript(script, null);
             }
 
             public override WebResourceResponse? ShouldInterceptRequest(WebView? view, IWebResourceRequest? request)
