@@ -22,6 +22,7 @@ namespace DirectPackageInstaller.Android
         private string _currentPageUrl = "";
         private bool _uBlockEnabled = true;
         private bool _autoCaptureEnabled = true;
+        private long _lastUserGestureAt;
         private readonly UBlockEngine _uBlock = new();
 
         protected override async void OnCreate(Bundle? savedInstanceState)
@@ -109,6 +110,17 @@ namespace DirectPackageInstaller.Android
 
         private bool IsBlocked(string? url, string type = "other") => _uBlockEnabled && _uBlock.IsBlocked(url, _currentPageUrl, type);
 
+        private void MarkUserGesture()
+        {
+            _lastUserGestureAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        }
+
+        private bool HasRecentUserGesture()
+        {
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            return now - _lastUserGestureAt <= 5000;
+        }
+
         private void Capture(string? url)
         {
             if (string.IsNullOrWhiteSpace(url)) return;
@@ -142,6 +154,48 @@ namespace DirectPackageInstaller.Android
                    type.IndexOf("application/octet-stream", StringComparison.OrdinalIgnoreCase) >= 0 ||
                    type.IndexOf("application/x-pkg", StringComparison.OrdinalIgnoreCase) >= 0 ||
                    type.IndexOf("application/vnd.playstation", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool LooksLikeStaticResource(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return true;
+            var path = url.Split('?', '#')[0].ToLowerInvariant();
+            return path.EndsWith(".js", StringComparison.Ordinal) ||
+                   path.EndsWith(".mjs", StringComparison.Ordinal) ||
+                   path.EndsWith(".css", StringComparison.Ordinal) ||
+                   path.EndsWith(".map", StringComparison.Ordinal) ||
+                   path.EndsWith(".png", StringComparison.Ordinal) ||
+                   path.EndsWith(".jpg", StringComparison.Ordinal) ||
+                   path.EndsWith(".jpeg", StringComparison.Ordinal) ||
+                   path.EndsWith(".gif", StringComparison.Ordinal) ||
+                   path.EndsWith(".webp", StringComparison.Ordinal) ||
+                   path.EndsWith(".svg", StringComparison.Ordinal) ||
+                   path.EndsWith(".ico", StringComparison.Ordinal) ||
+                   path.EndsWith(".woff", StringComparison.Ordinal) ||
+                   path.EndsWith(".woff2", StringComparison.Ordinal) ||
+                   path.EndsWith(".ttf", StringComparison.Ordinal) ||
+                   path.EndsWith(".otf", StringComparison.Ordinal) ||
+                   path.EndsWith(".mp3", StringComparison.Ordinal) ||
+                   path.EndsWith(".mp4", StringComparison.Ordinal) ||
+                   path.EndsWith(".webm", StringComparison.Ordinal);
+        }
+
+        private bool ShouldCaptureUserInitiatedRequest(IWebResourceRequest? request)
+        {
+            if (!_autoCaptureEnabled || request == null) return false;
+            if (!HasRecentUserGesture()) return false;
+
+            var url = request.Url?.ToString();
+            if (string.IsNullOrWhiteSpace(url)) return false;
+            if (!string.Equals(request.Method, "GET", StringComparison.OrdinalIgnoreCase)) return false;
+            if (LooksLikeStaticResource(url)) return false;
+
+            return LooksLikeDownloadUrl(url) ||
+                   url.IndexOf("download", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   url.IndexOf("pkg", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   url.IndexOf("fpkg", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   url.IndexOf("payload", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   url.IndexOf("/file", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private void CaptureAuto(string? url, string? contentType = null, string? contentDisposition = null)
@@ -188,6 +242,7 @@ namespace DirectPackageInstaller.Android
                     let lastUserGesture = 0;
                     document.addEventListener('click', function() {
                         lastUserGesture = Date.now();
+                        try { window.DpiBridge && window.DpiBridge.markGesture(); } catch (_) {}
                     }, true);
 
                     function recentGesture() {
@@ -238,7 +293,10 @@ namespace DirectPackageInstaller.Android
                     const oldOpen = XMLHttpRequest.prototype.open;
                     const oldSend = XMLHttpRequest.prototype.send;
                     XMLHttpRequest.prototype.open = function(method, url) {
-                        try { this.__dpiUrl = String(url); } catch (_) {}
+                        try {
+                            this.__dpiUrl = String(url);
+                            this.__dpiMethod = String(method || 'GET').toUpperCase();
+                        } catch (_) {}
                         return oldOpen.apply(this, arguments);
                     };
                     XMLHttpRequest.prototype.send = function() {
@@ -271,7 +329,10 @@ namespace DirectPackageInstaller.Android
                 var url = request?.Url?.ToString();
                 if (_owner.IsBlocked(url, InferType(url)))
                     return new WebResourceResponse("text/plain", "utf-8", null);
-                if (url != null) _owner.CaptureAuto(url);
+                if (_owner.ShouldCaptureUserInitiatedRequest(request))
+                    _owner.Capture(url);
+                else if (url != null)
+                    _owner.CaptureAuto(url);
                 return null;
             }
 
@@ -299,6 +360,10 @@ namespace DirectPackageInstaller.Android
             [JavascriptInterface]
             [Export("capture")]
             public void Capture(string? url) => _owner.Capture(url);
+
+            [JavascriptInterface]
+            [Export("markGesture")]
+            public void MarkGesture() => _owner.MarkUserGesture();
         }
 
         protected override void OnDestroy()
