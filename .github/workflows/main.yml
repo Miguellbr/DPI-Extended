@@ -182,4 +182,24 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload v0.1.0 Release/* --clobber --repo "${{ github.repository }}"
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          release_id="$(gh api "repos/$repo/releases/tags/v0.1.0" --jq '.id')"
+          upload_url="$(gh api "repos/$repo/releases/$release_id" --jq '.upload_url' | sed 's/{?name,label}//')"
+
+          for file in Release/*; do
+            [ -f "$file" ] || continue
+            name="$(basename "$file")"
+            existing_id="$(gh api --paginate "repos/$repo/releases/$release_id/assets" --jq ".[] | select(.name == \"$name\") | .id" | head -n 1 || true)"
+            if [ -n "$existing_id" ]; then
+              gh api --method DELETE "repos/$repo/releases/assets/$existing_id"
+            fi
+
+            curl --fail-with-body --retry 3 --retry-all-errors \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/zip" \
+              --data-binary "@$file" \
+              "$upload_url?name=$name"
+          done
