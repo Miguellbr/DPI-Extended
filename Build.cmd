@@ -132,9 +132,12 @@ AndroidPublish (){
 
    if [ -z "$APK_SOURCE" ]; then
       echo "ANDROID APK NOT FOUND under: $ANDROID_OUTPUT_DIR"
-      find "$ANDROID_OUTPUT_DIR" -type f | head -100
+      echo "Android publish output:"
+      find "DirectPackageInstaller/DirectPackageInstaller.Android/bin" -type f | head -200 || true
       exit 1
    fi
+
+   echo "Android package found: $APK_SOURCE"
 
    APK_DIR="$(dirname "$APK_SOURCE")"
    mv "$APK_SOURCE" "$APK_DIR/DPI-Extended.apk"
