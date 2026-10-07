@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using Android.App;
 using Android.OS;
 using Android.Webkit;
@@ -22,6 +21,7 @@ namespace DirectPackageInstaller.Android
         private string _lastCandidate = "";
         private string _currentPageUrl = "";
         private bool _uBlockEnabled = true;
+        private bool _autoCaptureEnabled = true;
         private readonly UBlockEngine _uBlock = new();
 
         protected override async void OnCreate(Bundle? savedInstanceState)
@@ -117,11 +117,38 @@ namespace DirectPackageInstaller.Android
 
             _lastCandidate = url;
             RunOnUiThread(() =>
-            {
-                if (url.Contains(".pkg", StringComparison.OrdinalIgnoreCase) ||
-                    url.Contains("download", StringComparison.OrdinalIgnoreCase))
-                    Toast.MakeText(this, "Link de download capturado. Toque em Use.", ToastLength.Short).Show();
-            });
+                Toast.MakeText(this, "Download capturado. Toque em Use.", ToastLength.Short).Show());
+        }
+
+        private static bool LooksLikeDownloadUrl(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return false;
+            var lower = url.ToLowerInvariant();
+            var path = lower.Split('?', '#')[0];
+            return path.EndsWith(".pkg", StringComparison.Ordinal) ||
+                   lower.Contains(".pkg?", StringComparison.Ordinal) ||
+                   lower.Contains(".pkg&", StringComparison.Ordinal) ||
+                   path.Contains("/download/", StringComparison.Ordinal) ||
+                   path.EndsWith("/download", StringComparison.Ordinal) ||
+                   lower.Contains("download=1", StringComparison.Ordinal) ||
+                   lower.Contains("download=true", StringComparison.Ordinal);
+        }
+
+        private static bool LooksLikeDownloadResponse(string? contentType, string? contentDisposition)
+        {
+            var type = contentType ?? string.Empty;
+            var disposition = contentDisposition ?? string.Empty;
+            return disposition.IndexOf("attachment", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   type.IndexOf("application/octet-stream", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   type.IndexOf("application/x-pkg", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   type.IndexOf("application/vnd.playstation", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private void CaptureAuto(string? url, string? contentType = null, string? contentDisposition = null)
+        {
+            if (!_autoCaptureEnabled) return;
+            if (LooksLikeDownloadUrl(url) || LooksLikeDownloadResponse(contentType, contentDisposition))
+                Capture(url);
         }
 
         private void CaptureDownload(string? url, string? userAgent, string? contentDisposition, string? mimetype, long contentLength)
@@ -145,7 +172,7 @@ namespace DirectPackageInstaller.Android
             {
                 var url = request?.Url?.ToString();
                 if (_owner.IsBlocked(url, InferType(url))) return true;
-                if (url != null) _owner.Capture(url);
+                if (url != null) _owner.CaptureAuto(url);
                 return false;
             }
 
@@ -157,20 +184,72 @@ namespace DirectPackageInstaller.Android
                 const string script = @"(function(){
                     if (window.__dpiCaptureInstalled) return;
                     window.__dpiCaptureInstalled = true;
+
+                    let lastUserGesture = 0;
+                    document.addEventListener('click', function() {
+                        lastUserGesture = Date.now();
+                    }, true);
+
+                    function recentGesture() {
+                        return Date.now() - lastUserGesture < 10000;
+                    }
+
+                    function maybeCapture(url, contentType, contentDisposition) {
+                        try {
+                            const text = String(url || '');
+                            const lower = text.toLowerCase();
+                            const obvious = lower.split(/[?#]/)[0].endsWith('.pkg') ||
+                                lower.includes('.pkg?') || lower.includes('.pkg&') ||
+                                lower.includes('/download/') ||
+                                lower.endsWith('/download') ||
+                                lower.includes('download=1') ||
+                                lower.includes('download=true');
+                            const attachment = String(contentDisposition || '').toLowerCase().includes('attachment');
+                            const binary = String(contentType || '').toLowerCase().includes('application/octet-stream') ||
+                                String(contentType || '').toLowerCase().includes('application/x-pkg') ||
+                                String(contentType || '').toLowerCase().includes('application/vnd.playstation');
+                            if ((obvious || attachment || binary) && (obvious || recentGesture() || attachment || binary))
+                                window.DpiBridge && window.DpiBridge.capture(text);
+                        } catch (_) {}
+                    }
+
+                    document.addEventListener('click', function(event) {
+                        try {
+                            const a = event.target && event.target.closest ? event.target.closest('a') : null;
+                            if (!a) return;
+                            const href = a.href || a.getAttribute('href');
+                            if (href) maybeCapture(href, '', '');
+                        } catch (_) {}
+                    }, true);
+
                     const oldFetch = window.fetch;
                     window.fetch = function(input, init) {
-                        try {
-                            const u = typeof input === 'string' ? input : input.url;
-                            if (window.DpiBridge) window.DpiBridge.capture(String(u));
-                        } catch (_) {}
-                        return oldFetch.apply(this, arguments);
+                        const result = oldFetch.apply(this, arguments);
+                        result.then(function(response) {
+                            try {
+                                maybeCapture(response.url || (typeof input === 'string' ? input : input.url),
+                                    response.headers.get('content-type'),
+                                    response.headers.get('content-disposition'));
+                            } catch (_) {}
+                        }).catch(function(){});
+                        return result;
                     };
+
                     const oldOpen = XMLHttpRequest.prototype.open;
+                    const oldSend = XMLHttpRequest.prototype.send;
                     XMLHttpRequest.prototype.open = function(method, url) {
-                        try {
-                            if (window.DpiBridge) window.DpiBridge.capture(String(url));
-                        } catch (_) {}
+                        try { this.__dpiUrl = String(url); } catch (_) {}
                         return oldOpen.apply(this, arguments);
+                    };
+                    XMLHttpRequest.prototype.send = function() {
+                        try {
+                            this.addEventListener('load', function() {
+                                maybeCapture(this.responseURL || this.__dpiUrl,
+                                    this.getResponseHeader('Content-Type'),
+                                    this.getResponseHeader('Content-Disposition'));
+                            });
+                        } catch (_) {}
+                        return oldSend.apply(this, arguments);
                     };
                 })();";
                 view?.EvaluateJavascript(script, null);
@@ -192,7 +271,7 @@ namespace DirectPackageInstaller.Android
                 var url = request?.Url?.ToString();
                 if (_owner.IsBlocked(url, InferType(url)))
                     return new WebResourceResponse("text/plain", "utf-8", null);
-                if (url != null) _owner.Capture(url);
+                if (url != null) _owner.CaptureAuto(url);
                 return null;
             }
 
@@ -200,7 +279,7 @@ namespace DirectPackageInstaller.Android
             {
                 if (_owner.IsBlocked(url))
                     return new WebResourceResponse("text/plain", "utf-8", null);
-                _owner.Capture(url);
+                _owner.CaptureAuto(url);
                 return null;
             }
         }
