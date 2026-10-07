@@ -5,10 +5,10 @@ namespace DirectPackageInstaller.IO
 {
     public class SegmentedStreamReader : Stream
     {
-        private readonly SegmentedStream _baseStream;
+        private readonly Stream _baseStream;
         private long _position;
 
-        public SegmentedStreamReader(SegmentedStream baseStream)
+        public SegmentedStreamReader(Stream baseStream)
         {
             _baseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
             _position = 0;
@@ -31,7 +31,8 @@ namespace DirectPackageInstaller.IO
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            int read = _baseStream.ReadAt(_position, buffer, offset, count);
+            _baseStream.Position = _position;
+            int read = _baseStream.Read(buffer, offset, count);
             _position += read;
             return read;
         }
