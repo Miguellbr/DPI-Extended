@@ -20,7 +20,7 @@ export AndroidNdkDirectory=~/Android/Sdk/ndk/24.0.8215888/
 if [ -d "/usr/local/lib/android/sdk" ]; then
    echo "Github Action Android SDK Path Found"
    export AndroidSdkDirectory=/usr/local/lib/android/sdk
-   export AndroidNdkDirectory=/usr/local/lib/android/sdk/ndk/24.0.8215888/ 
+   export AndroidNdkDirectory=/usr/local/lib/android/sdk/ndk/24.0.8215888/
 fi
 
 dotnet clean
@@ -33,7 +33,7 @@ BUILD_TARGETS="${BUILD_TARGETS:-win,linux,osx,android}"
 echo "Build targets: $BUILD_TARGETS"
 
 has_target() {
-   case ",$BUILD_TARGETS," in *",$1,"*) return 0;; *) return 1;; esac
+   case ",$BUILD_TARGETS," in *,1,*) return 0;; *) return 1;; esac
 }
 
 Publish () {
@@ -46,43 +46,26 @@ Publish () {
    zip -j -9 -r Release/$1.zip DirectPackageInstaller/DirectPackageInstaller.Desktop/bin/Release/net8.0/$1/publish/* -x Icon.icns
 }
 
-
-# Fix Console Window on Windows
 WINPublish(){
    Publish $1
-
    cd Release
-
    unzip $1.zip -d tmp/
-
    dotnet ../Files/NSubsys.Tasks.dll ./tmp/DirectPackageInstaller.Desktop.exe
-
    rm $1.zip
    zip -j -9 -r $1.zip tmp/*
    rm -r tmp
-
    cd ..
 }
 
-# macOS build:
-#  - --self-contained bundles the .NET 8 runtime, so users don't need to install it.
-#  - After the .app is assembled, ad-hoc codesign it so arm64 binaries launch
-#    on Apple Silicon (unsigned arm64 Mach-O is refused by the loader).
-#  - If hdiutil is available, also produce a drag-to-Applications DMG.
 OSXPublish (){
    Publish $1 "--self-contained -p:PublishSingleFile=false"
-
    cd Release
-
    mkdir -p tmp
    cp -R ../Files/OSXAppBase/DirectPackageInstaller.app tmp/
    unzip $1.zip -d tmp/DirectPackageInstaller.app/Contents/MacOS
-
-   # Ensure the launcher is executable even if zip permissions were lost.
    if [ -f tmp/DirectPackageInstaller.app/Contents/MacOS/DirectPackageInstaller.Desktop ]; then
       chmod +x tmp/DirectPackageInstaller.app/Contents/MacOS/DirectPackageInstaller.Desktop
    fi
-
    if command -v codesign >/dev/null 2>&1; then
       echo "Ad-hoc signing $1 .app bundle"
       codesign --force --deep --sign - tmp/DirectPackageInstaller.app
@@ -90,11 +73,9 @@ OSXPublish (){
       echo "WARNING: codesign not available, skipping ad-hoc signature"
       echo "         arm64 builds produced on non-macOS hosts will not launch on Apple Silicon"
    fi
-
    cd tmp
    zip -9 -r ../$1-app.zip ./
    cd ..
-
    if command -v hdiutil >/dev/null 2>&1; then
       echo "Packaging $1 DMG"
       mkdir -p dmg
@@ -103,20 +84,18 @@ OSXPublish (){
       hdiutil create -volname "DirectPackageInstaller" -srcfolder dmg -ov -format UDZO $1-app.dmg
       rm -rf dmg
    fi
-
    rm -r tmp
-
    cd ..
 }
 
-AndroidPublish (){
-   if ! [ -d "\${AndroidSdkDirectory}build-tools" ]; then
-   \techo "POSSIBLE INVALID ANDROID SDK PATH";
+AndroidPublish () {
+   if ! [ -d "${AndroidSdkDirectory}build-tools" ]; then
+      echo "POSSIBLE INVALID ANDROID SDK PATH"
    fi
-   if ! [ -f "\${AndroidNdkDirectory}ndk-build" ]; then
-   \techo "POSSIBLE INVALID ANDROID NDK PATH";
+   if ! [ -f "${AndroidNdkDirectory}ndk-build" ]; then
+      echo "POSSIBLE INVALID ANDROID NDK PATH"
    fi
-   
+
    dotnet workload restore
 
    if [ ! -f "Release/.android-test.keystore" ]; then
@@ -125,15 +104,26 @@ AndroidPublish (){
 
    echo "Building Android for $1"
    dotnet restore -r $1 DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj
-   dotnet publish DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj -c Release -r $1 --no-restore
+   if ! dotnet publish DirectPackageInstaller/DirectPackageInstaller.Android/DirectPackageInstaller.Android.csproj -c Release -r $1 --no-restore; then
+      echo "ANDROID DOTNET PUBLISH FAILED for $1"
+      echo "Android bin tree:"
+      find DirectPackageInstaller/DirectPackageInstaller.Android/bin -maxdepth 5 -print 2>/dev/null | head -300 || true
+      echo "Android obj tree:"
+      find DirectPackageInstaller/DirectPackageInstaller.Android/obj -maxdepth 5 -print 2>/dev/null | head -300 || true
+      exit 1
+   fi
 
-   ANDROID_OUTPUT_DIR="DirectPackageInstaller/DirectPackageInstaller.Android/bin/Release"
-   APK_SOURCE="$(find "$ANDROID_OUTPUT_DIR" -type f -name '*.apk' -print -quit)"
+   ANDROID_BIN_DIR="DirectPackageInstaller/DirectPackageInstaller.Android/bin"
+   APK_SOURCE="$(find "$ANDROID_BIN_DIR" -type f -name '*.apk' -print -quit)"
 
    if [ -z "$APK_SOURCE" ]; then
-      echo "ANDROID APK NOT FOUND under: $ANDROID_OUTPUT_DIR"
-      echo "Android publish output:"
-      find "DirectPackageInstaller/DirectPackageInstaller.Android/bin" -type f | head -200 || true
+      echo "ANDROID APK NOT FOUND under: $ANDROID_BIN_DIR"
+      echo "Android bin tree:"
+      find "$ANDROID_BIN_DIR" -maxdepth 8 -print 2>/dev/null | head -500 || true
+      echo "Android obj tree:"
+      find "DirectPackageInstaller/DirectPackageInstaller.Android/obj" -maxdepth 6 -print 2>/dev/null | head -300 || true
+      echo "Possible Android packages anywhere in workspace:"
+      find DirectPackageInstaller -type f \( -name '*.apk' -o -name '*.aab' -o -name '*.apks' \) -print 2>/dev/null | head -100 || true
       exit 1
    fi
 
@@ -146,11 +136,12 @@ AndroidPublish (){
       echo "ANDROID APKSIGNER NOT FOUND"
       exit 1
    fi
-   "$APKSIGNER" sign --ks "Release/.android-test.keystore" --ks-pass pass:android --key-pass pass:android --out "$APK_DIR/DPI-Extended-signed.apk" "$APK_DIR/DPI-Extended.apk"
+   "$APKSIGNER" sign --ks "Release/.android-test.keystore" --ks-pass pass:android --key-pass android --out "$APK_DIR/DPI-Extended-signed.apk" "$APK_DIR/DPI-Extended.apk"
    mv "$APK_DIR/DPI-Extended-signed.apk" "$APK_DIR/DPI-Extended.apk"
    "$APKSIGNER" verify --verbose "$APK_DIR/DPI-Extended.apk"
    zip -j -9 -r Release/$1.zip "$APK_DIR/DPI-Extended.apk"
 }
+
 if has_target win; then
    WINPublish win-x64
    WINPublish win-x86
@@ -194,10 +185,8 @@ fi
 if has_target osx; then
    mv osx-x64.zip OSX-X64.zip
    mv osx-arm64.zip OSX-ARM64.zip
-
    mv osx-x64-app.zip OSX-X64-APP.zip
    mv osx-arm64-app.zip OSX-ARM64-APP.zip
-
    [ -f osx-x64-app.dmg ] && mv osx-x64-app.dmg OSX-X64-APP.dmg
    [ -f osx-arm64-app.dmg ] && mv osx-arm64-app.dmg OSX-ARM64-APP.dmg
 fi
@@ -228,11 +217,7 @@ if errorlevel 1 (
    goto :eof
 )
 
-
-REM The correct SDK directory, contains a build-tools directory
 set AndroidSdkDirectory=C:\Program Files (x86)\Android\android-sdk\
-
-REM The correct NDK directory, contains a ndk-build.cmd
 set AndroidNdkDirectory=C:\Program Files (x86)\Android\android-sdk\ndk\24.0.8215888\
 
 cls
@@ -249,43 +234,33 @@ call :Build win-x64
 call :Build win-x86
 call :Build win-arm
 call :Build win-arm64
-
 call :Build linux-x64
 call :Build linux-arm
 call :Build linux-arm64
-
 call :OSXBuild osx-x64
 call :OSXBuild osx-arm64
-
 call :AndroidBuild android-x64
 call :AndroidBuild android-x86
 call :AndroidBuild android-arm
 call :AndroidBuild android-arm64
 
 cd Release
-
 move win-x64.zip Windows-X64.zip
 move win-x86.zip Windows-X86.zip
 move win-arm.zip Windows-ARM.zip
 move win-arm64.zip Windows-ARM64.zip
-
 move linux-x64.zip Linux-X64.zip
 move linux-arm.zip Linux-ARM.zip
 move linux-arm64.zip Linux-ARM64.zip
-
 move osx-x64.zip OSX-X64.zip
 move osx-arm64.zip OSX-ARM64.zip
-
 move osx-x64-app.zip OSX-X64-app.zip
 move osx-arm64-app.zip OSX-ARM64-app.zip
-
 move android-x64.zip Android-X64.zip
 move android-x86.zip Android-X86.zip
 move android-arm.zip Android-ARM.zip
 move android-arm64.zip Android-ARM64.zip
-
 cd ..
-
 echo Build Finished.
 goto :eof
 
@@ -301,8 +276,6 @@ if /i "%1"=="win-arm64" powershell -ExecutionPolicy Bypass -File .\Tools\prepare
 powershell Compress-Archive .\DirectPackageInstaller\DirectPackageInstaller.Desktop\bin\Release\net8.0\%1\publish\* .\Release\%1.zip
 goto :eof
 
-
-
 exit
 :OSXBuild
 call :Build %1
@@ -314,18 +287,18 @@ rmdir /s /q .\Release\tmp
 goto :eof
 :AndroidBuild
 IF NOT EXIST "%AndroidSdkDirectory%build-tools" (
-\techo ANDROID SDK NOT FOUND
-\tgoto :eof
+ echo ANDROID SDK NOT FOUND
+ goto :eof
 )
 IF NOT EXIST "%AndroidNdkDirectory%ndk-build.cmd" (
-\techo ANDROID NDK NOT FOUND
-\tgoto :eof
+ echo ANDROID NDK NOT FOUND
+ goto :eof
 )
 echo Building Android for %1
 if not exist ".\Release\.android-test.keystore" keytool -genkeypair -v -keystore ".\Release\.android-test.keystore" -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
 dotnet restore -r %1 .\DirectPackageInstaller\DirectPackageInstaller.Android\DirectPackageInstaller.Android.csproj
 dotnet publish .\DirectPackageInstaller\DirectPackageInstaller.Android\DirectPackageInstaller.Android.csproj -c Release -r %1
-set "ANDROID_OUTPUT_DIR=.\DirectPackageInstaller\DirectPackageInstaller.Android\bin\Release"
+set "ANDROID_OUTPUT_DIR=.\DirectPackageInstaller\DirectPackageInstaller.Android\bin"
 set "APK_SOURCE="
 for /r "%ANDROID_OUTPUT_DIR%" %%F in (*.apk) do (
   if exist "%%~fF" if not defined APK_SOURCE set "APK_SOURCE=%%~fF"
@@ -342,7 +315,7 @@ if not defined APKSIGNER (
   echo ANDROID APKSIGNER NOT FOUND
   exit /b 1
 )
-call "%APKSIGNER%" sign --ks ".\Release\.android-test.keystore" --ks-pass pass:android --key-pass pass:android --out "%APK_DIR%DPI-Extended-signed.apk" "%APK_DIR%DPI-Extended.apk"
+call "%APKSIGNER%" sign --ks ".\Release\.android-test.keystore" --ks-pass pass:android --key-pass android --out "%APK_DIR%DPI-Extended-signed.apk" "%APK_DIR%DPI-Extended.apk"
 move /Y "%APK_DIR%DPI-Extended-signed.apk" "%APK_DIR%DPI-Extended.apk"
 call "%APKSIGNER%" verify --verbose "%APK_DIR%DPI-Extended.apk"
 powershell Compress-Archive -Path "%APK_DIR%DPI-Extended.apk" -DestinationPath ".\Release\%1.zip" -Force
