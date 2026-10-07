@@ -501,7 +501,7 @@ namespace DirectPackageInstaller.Views
             if (!App.IsAndroid)
                 return;
 
-            DirectPackageInstaller.Android.BrowserLauncher.Open();
+            App.OpenBrowser?.Invoke();
         }
 
         private async void BtnLoadOnClick(object? sender, RoutedEventArgs e)
