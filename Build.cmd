@@ -162,8 +162,6 @@ fi
 
 if has_target android; then
    AndroidPublish android-x64
-   AndroidPublish android-x86
-   AndroidPublish android-arm
    AndroidPublish android-arm64
 fi
 
@@ -193,8 +191,6 @@ fi
 
 if has_target android; then
    mv android-x64.zip Android-X64.zip
-   mv android-x86.zip Android-X86.zip
-   mv android-arm.zip Android-ARM.zip
    mv android-arm64.zip Android-ARM64.zip
 fi
 
@@ -240,8 +236,6 @@ call :Build linux-arm64
 call :OSXBuild osx-x64
 call :OSXBuild osx-arm64
 call :AndroidBuild android-x64
-call :AndroidBuild android-x86
-call :AndroidBuild android-arm
 call :AndroidBuild android-arm64
 
 cd Release
@@ -257,8 +251,6 @@ move osx-arm64.zip OSX-ARM64.zip
 move osx-x64-app.zip OSX-X64-app.zip
 move osx-arm64-app.zip OSX-ARM64-app.zip
 move android-x64.zip Android-X64.zip
-move android-x86.zip Android-X86.zip
-move android-arm.zip Android-ARM.zip
 move android-arm64.zip Android-ARM64.zip
 cd ..
 echo Build Finished.
