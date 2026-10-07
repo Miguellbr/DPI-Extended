@@ -385,7 +385,7 @@ namespace DirectPackageInstaller.Host
                 var HttpStream = new FileHostStream(Url);
 
                 if (HttpStream.SingleConnection)
-                    Source = new ReadSeekableStream(HttpStream);
+                    Source = HttpStream;
                 else
                     Source = HttpStream;
             }
