@@ -52,6 +52,7 @@ namespace DirectPackageInstaller.Android
             _webView.Settings.AllowFileAccess = false;
             _webView.Settings.AllowContentAccess = false;
             _webView.SetWebViewClient(new CaptureClient(this));
+            _webView.SetDownloadListener(new CaptureDownloadListener(this));
             _webView.AddJavascriptInterface(new JsBridge(this), "DpiBridge");
             root.AddView(_webView, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MatchParent, 0, 1));
@@ -103,6 +104,22 @@ namespace DirectPackageInstaller.Android
                 if (url.Contains(".pkg", StringComparison.OrdinalIgnoreCase) ||
                     url.Contains("download", StringComparison.OrdinalIgnoreCase))
                     Toast.MakeText(this, "Link de download capturado. Toque em Use.", ToastLength.Short).Show();
+            });
+        }
+
+        private void CaptureDownload(string? url, string? userAgent, string? contentDisposition, string? mimetype, long contentLength)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                return;
+
+            Capture(url);
+
+            RunOnUiThread(() =>
+            {
+                var name = contentDisposition ?? string.Empty;
+                var type = mimetype ?? string.Empty;
+                var size = contentLength > 0 ? $" {contentLength / 1024d / 1024d:0.0} MB" : string.Empty;
+                Toast.MakeText(this, $"Download capturado: {type}{size}", ToastLength.Short).Show();
             });
         }
 
@@ -161,6 +178,18 @@ namespace DirectPackageInstaller.Android
             {
                 _owner.Capture(url);
                 return null;
+            }
+        }
+
+        private sealed class CaptureDownloadListener : Java.Lang.Object, IDownloadListener
+        {
+            private readonly BrowserActivity _owner;
+
+            public CaptureDownloadListener(BrowserActivity owner) => _owner = owner;
+
+            public void OnDownloadStart(string? url, string? userAgent, string? contentDisposition, string? mimetype, long contentLength)
+            {
+                _owner.CaptureDownload(url, userAgent, contentDisposition, mimetype, contentLength);
             }
         }
 
