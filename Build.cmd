@@ -289,8 +289,8 @@ goto :eof
 exit
 :Build
 echo Building for %1
-dotnet restore -r %1
-dotnet publish -c Release -r %1
+dotnet restore -r %1 .\DirectPackageInstaller\DirectPackageInstaller.Desktop\DirectPackageInstaller.Desktop.csproj
+dotnet publish .\DirectPackageInstaller\DirectPackageInstaller.Desktop\DirectPackageInstaller.Desktop.csproj -c Release -r %1
 if /i "%1"=="win-x64" powershell -ExecutionPolicy Bypass -File .\Tools\prepare-pkgstream-runtime.ps1 -Target %1 -Out .\DirectPackageInstaller\DirectPackageInstaller.Desktop\bin\Release\net8.0\%1\publish
 if /i "%1"=="win-x86" powershell -ExecutionPolicy Bypass -File .\Tools\prepare-pkgstream-runtime.ps1 -Target %1 -Out .\DirectPackageInstaller\DirectPackageInstaller.Desktop\bin\Release\net8.0\%1\publish
 if /i "%1"=="win-arm" powershell -ExecutionPolicy Bypass -File .\Tools\prepare-pkgstream-runtime.ps1 -Target %1 -Out .\DirectPackageInstaller\DirectPackageInstaller.Desktop\bin\Release\net8.0\%1\publish
