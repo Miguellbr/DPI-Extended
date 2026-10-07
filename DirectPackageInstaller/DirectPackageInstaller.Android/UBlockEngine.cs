@@ -50,7 +50,7 @@ namespace DirectPackageInstaller.Android
                 // Jint 4.2 exposes async JavaScript invocation through InvokeAsync.
                 // DpiUbo.initialize() returns a Promise because uBO list compilation
                 // is asynchronous.
-                await engine.InvokeAsync("DpiUbo.initialize", listsJson).ConfigureAwait(false);
+                engine.Invoke("DpiUbo.initialize", listsJson).UnwrapIfPromise();
 
                 _count = (int)engine.GetValue("DpiUboRuleCount").AsNumber();
 
