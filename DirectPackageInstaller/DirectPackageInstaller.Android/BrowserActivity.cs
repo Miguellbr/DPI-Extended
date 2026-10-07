@@ -33,9 +33,9 @@ namespace DirectPackageInstaller.Android
 
             _address = new EditText(this)
             {
-                SingleLine = true,
                 Text = Intent?.DataString ?? "https://"
             };
+            _address.SetSingleLine(true);
             _address.LayoutParameters = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, 1);
 
             var go = new Button(this) { Text = "Go" };
