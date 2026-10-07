@@ -33,7 +33,7 @@ BUILD_TARGETS="${BUILD_TARGETS:-win,linux,osx,android}"
 echo "Build targets: $BUILD_TARGETS"
 
 has_target() {
-   case ",$BUILD_TARGETS," in *,1,*) return 0;; *) return 1;; esac
+   case ",$BUILD_TARGETS," in *,"$1",*) return 0;; *) return 1;; esac
 }
 
 Publish () {
