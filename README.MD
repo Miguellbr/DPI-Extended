@@ -1,187 +1,107 @@
 # DirectPackageInstaller Extended
 
-**DirectPackageInstaller Extended (DPI-Extended)** is a community-derived version of DirectPackageInstaller that keeps the original DPI installation flow while adding an extra capability: handling remote RAR archives that contain PKG files.
+**DPI-Extended** is a community-derived DirectPackageInstaller with browser-based PKG capture, memory-backed remote streaming, remote RAR → PKG support, and integrated uBlock Origin network filtering.
 
 [🇧🇷 Português](README.pt-BR.md) · [🇪🇸 Español](README.es.md)
 
-## What is DPI-Extended?
-
-DPI-Extended keeps DirectPackageInstaller as the main installer and preserves its existing PS4/PS5 installation paths.
-
-The main addition is **PKGStream** integration. It allows DPI to resolve a remote RAR, find a PKG inside it, and expose that PKG through the existing installation flow instead of requiring the user to install a RAR/unrar tool separately.
-
-Conceptually:
-
-```
-Remote RAR URL
-     │
-     ▼
-DPI-Extended
-     │
-     ▼
-PKGStream
- ├─ resolve remote source
- ├─ open the RAR
- ├─ find the PKG
- └─ stream/cache the PKG
-     │
-     ▼
-Existing DPI installation flow
-     │
-     ▼
-PS4 / PS5
-```
-
-The interface remains intentionally simple: paste the URL and use **Open**. DPI-Extended decides whether the URL should be handled by the normal DPI path or by the integrated RAR-to-PKG path.
-
 ## Features
 
-Everything from the original DirectPackageInstaller remains available, including:
-
-- Preview PKG files
-- Direct PKG downloads
-- PS4 and PS5 package installation
-- Remote Package Installer support
-- GoldHEN Payload Server support
-- etaHEN DPIv2 API support
-- Automatic proxying
-- RAR/7z compressed file support
-- Resumable downloads where supported
-- Segmented downloads
-- Support for several file-hosting services
-- PSN update manifests / split PKGs
-- Command Line Interface (CLI)
-- JDownloader Click'n Load support
-- Automatic LAN connection on Windows
-- NFS package sources
+Everything from the original DirectPackageInstaller remains available, including PKG preview, direct PKG downloads, PS4/PS5 installation, Remote Package Installer, GoldHEN Payload Server, etaHEN DPIv2 API, proxying, segmented/resumable downloads, supported file hosts, PSN manifests/split PKGs, CLI, JDownloader Click'n Load, Windows LAN connection, and NFS sources.
 
 ### DPI-Extended additions
 
+- **Android built-in browser** for navigating download sites
+- **Automatic PKG/download URL capture** from navigation, Fetch/XHR, WebView download events, and user-initiated requests
+- Captured URLs can be sent into the normal DPI installation flow
+- **Memory-backed segmented streaming** using HTTP Range requests and bounded RAM, avoiding storage of the complete remote PKG
+- **uBlock Origin Static Network Filtering Engine (SNFE)** integrated into the Android browser, with an ON/OFF toggle
+- uBlock filtering is optional at runtime, so the browser can continue if filter initialization fails
 - Remote RAR → PKG handling through PKGStream
-- Finds PKG entries inside remote RAR archives
 - Progressive streaming and caching through PKGStream
-- No separate RAR/unrar installation required for the integrated path
-- PKGStream is kept as an auxiliary component; DPI remains the installer
-- Desktop releases can bundle the Node.js runtime required by PKGStream
+- No separate RAR/unrar installation required for the integrated RAR path
 
-## Supported file-hosting services
+## Android browser
 
-The original DPI supports:
+The browser is a download-oriented WebView. It provides back/forward navigation, refresh, URL bar, download capture, automatic capture of likely package downloads, Fetch/XHR interception for JavaScript-driven downloads, duplicate-capture protection, and a uBlock filtering toggle.
 
-- Any direct link (without authentication)
-- AllDebrid ([API key required](https://alldebrid.com/apikeys/))
-- RealDebrid ([API key required](https://real-debrid.com/apitoken))
-- DebridLink ([API key required](https://debrid-link.com/webapp/apikey))
-- Google Drive
-- MediaFire
-- PixelDrain
-- 1Fichier
+It does not try to capture every network request. Static resources such as images, CSS, fonts, and scripts are excluded from capture logic while package/download candidates are prioritized.
 
-Remote RAR handling additionally depends on whether the archive host can be resolved and accessed by PKGStream.
+## uBlock Origin
+
+DPI-Extended bundles the official **uBlock Origin Static Network Filtering Engine (SNFE)** from `@gorhill/ubo-core` inside the Android application. This is the network-filtering engine, not the complete uBlock Origin browser extension.
+
+The bundled uBO code is GPL-3.0-or-later. See the upstream project and included licensing information for details.
+
+## Remote streaming
+
+Supported remote downloads can use segmented HTTP Range requests backed by a bounded in-memory cache. This allows DPI to consume a remote PKG without first writing the complete multi-gigabyte file to phone storage.
+
+```
+Remote PKG → HTTP Range segments → bounded RAM cache → DPI installation stream → PS4/PS5
+```
+
+## Remote RAR → PKG
+
+PKGStream can resolve a remote RAR, locate PKG entries inside it, and provide the selected package to the existing DPI installation flow. No separate RAR/unrar utility is required for this integrated path.
 
 ## How to use
 
 ### Direct PKG
-
 1. Start the package installation service supported by your setup.
 2. Open DPI-Extended.
-3. Paste a direct PKG URL into the URL field.
-4. Click **Open**.
-5. Click **Install** when the package is ready.
+3. Paste a direct PKG URL or capture one with the Android browser.
+4. Select **Open**.
+5. Select **Install** when the package is ready.
+
+### Browser capture
+1. Open the built-in browser.
+2. Navigate to the download page.
+3. Trigger the PKG/download normally.
+4. DPI-Extended attempts to capture the relevant download URL automatically.
+5. Use the captured URL and continue with the normal DPI flow.
 
 ### Remote RAR containing a PKG
+1. Paste the remote RAR URL into DPI-Extended.
+2. Select **Open**.
+3. PKGStream inspects the archive and locates the PKG.
+4. Select the desired PKG if there are multiple entries.
+5. Continue with the normal DPI installation flow.
 
-1. Open DPI-Extended.
-2. Paste the URL of the remote RAR into the URL field.
-3. Click **Open**.
-4. DPI-Extended uses PKGStream to inspect the archive and locate the PKG.
-5. Select the desired PKG if the archive contains multiple packages.
-6. Continue with the normal DPI installation flow.
+## Supported file-hosting services
 
-The user does not need to manually install a RAR extraction utility for this integrated path.
+The original DPI supports direct links and services such as AllDebrid, RealDebrid, DebridLink, Google Drive, MediaFire, PixelDrain, and 1Fichier. Remote RAR handling additionally depends on whether PKGStream can resolve and access the archive host.
 
-## How it works
+## Installation and releases
 
-DPI-Extended does not replace the existing installer or GoldHEN/RPI path.
+Download the latest build from the GitHub Releases page. Windows, Linux, and Android use the .NET 8 runtime according to the target package; macOS builds are self-contained.
 
-When a remote RAR URL is detected, DPI-Extended asks the local PKGStream component to inspect the archive. PKGStream resolves the remote source, locates the requested PKG entry, and provides it as a normal byte stream to DPI.
+Check the release assets for the exact Android architectures currently published by CI rather than assuming every historical architecture is available.
 
-DPI then continues using its existing package installation infrastructure.
-
-This separation is intentional:
-
-- **DPI** = user interface and installer
-- **PKGStream** = remote archive access and PKG extraction/streaming
-- **GoldHEN/RPI/etaHEN** = existing console-side installation mechanisms
-
-## Installation
-
-Download a build compatible with your platform.
-
-Windows, Linux, and Android builds use the .NET 8 runtime according to the target package. macOS builds are self-contained.
-
-> The integrated PKGStream runtime is packaged separately from the .NET application runtime. Desktop packages built for supported targets include the Node.js runtime and PKGStream dependencies needed by the integrated remote-RAR feature.
-
-## Downloads
-
-### Latest release
-
-**DPI-Extended v0.1.0 is now published as a GitHub Release.**
-
-[**Download the latest release — GitHub Releases**](https://github.com/Miguellbr/DPI-Extended/releases/latest)
-
-The release contains builds for Windows, Linux, Android, and macOS.
-
-For Android, choose the package matching your device architecture (`ARM`, `ARM64`, `X64`, or `X86`) and extract the APK from the downloaded ZIP.
-
-### Actual testing status
-
-> **IMPORTANT:** a green workflow means that the packages built successfully. It **does not mean that the applications have been tested on real devices**.
->
-> - **Android:** the APK is still awaiting testing on a real Android device.
-> - **Windows:** not physically tested yet.
-> - **Linux:** not physically tested yet.
-> - **macOS:** not physically tested yet.
-> - The maintainer currently **does not have a PC/Mac** available to perform these platform tests.
->
-> The recommended first test is therefore the Android APK on a real device, especially the remote RAR → PKG flow through PKGStream.
-
-GitHub Actions is used to build and publish the release. The published release is the preferred place to obtain the current builds.
+**Important:** a green GitHub Actions workflow confirms that the package built and was packaged successfully. It does not mean every feature has been tested on real hardware. The Android browser/WebView interception should be tested on a real Android device.
 
 ## Building
 
 1. Install the .NET 8.x SDK.
 2. Clone the repository with its submodules.
 3. Run `Build.cmd`.
-4. The compiled packages are placed in the `Release` directory.
+4. Packages are placed in `Release`.
 
-PKGStream is included as a Git submodule and is prepared as part of the desktop packaging process.
+The Android build bundles the uBlock filtering engine used by the browser. PKGStream is included as a Git submodule.
 
 ## Project structure
 
 - `DirectPackageInstaller/` — main DPI application
-- `PKGStream/` — remote archive → PKG streaming component
-- `Miguellbr/rar` — maintained RAR library fork used by PKGStream
-- `Tools/` — packaging helpers for the integrated PKGStream runtime
+- `DirectPackageInstaller/DirectPackageInstaller.Android/` — Android application and browser integration
+- `DirectPackageInstaller/DirectPackageInstaller/IO/` — streaming infrastructure
+- `PKGStream/` — remote archive → PKG component
+- `Tools/` — packaging helpers
+- `Assets/ubocore.bundle.js` — bundled uBlock filtering engine for Android
 
 ## Credits
 
-DPI-Extended is derived from **DirectPackageInstaller** by **marcussacana**.
+DPI-Extended is derived from **DirectPackageInstaller** by **marcussacana**. Major original components include DirectPackageInstaller, LibOrbisPkg, HttpServerLite, the payload template, PS4 internals/export definitions, and OpenOrbis components.
 
-Original project and major components:
-
-- **DirectPackageInstaller** by marcussacana
-- **LibOrbisPkg** by maxton
-- **HttpServerLite** by jchristn
-- Payload template by sleirsgoevy
-- PS4 OS internals help by LM
-- PS4 export definitions by OpenOrbis SDK
-
-DPI-Extended additions:
-
-- **PKGStream** integration
-- **@mary/rar** based remote RAR handling
-- Bundled PKGStream runtime packaging
+DPI-Extended additions include the Android browser/download capture, memory-backed segmented streaming, PKGStream integration, and uBlock Origin SNFE integration.
 
 ## Disclaimer
 
