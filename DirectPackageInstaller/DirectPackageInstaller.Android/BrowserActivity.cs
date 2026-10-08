@@ -84,8 +84,23 @@ namespace DirectPackageInstaller.Android
             };
 
             Navigate();
-            await _uBlock.LoadAsync();
-            Toast.MakeText(this, $"uBlock: {_uBlock.Count} regras carregadas.", ToastLength.Short).Show();
+
+            // uBlock is optional: a failure while loading its JS engine or filter
+            // lists must never prevent the browser itself from opening.
+            try
+            {
+                await _uBlock.LoadAsync();
+                _uBlockEnabled = true;
+                _ublock.Text = "🛡 ON";
+                Toast.MakeText(this, $"uBlock: {_uBlock.Count} regras carregadas.", ToastLength.Short).Show();
+            }
+            catch (Exception ex)
+            {
+                _uBlockEnabled = false;
+                _ublock.Text = "🛡 OFF";
+                System.Diagnostics.Debug.WriteLine($"uBlock initialization failed: {ex}");
+                Toast.MakeText(this, "uBlock indisponível. Browser continua funcionando.", ToastLength.Long).Show();
+            }
         }
 
         private void ToggleUBlock()
