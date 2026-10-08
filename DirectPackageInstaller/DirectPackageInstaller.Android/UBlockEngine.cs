@@ -27,11 +27,12 @@ namespace DirectPackageInstaller.Android
         public async Task LoadAsync()
         {
             await _gate.WaitAsync().ConfigureAwait(false);
+            Engine? engine = null;
             try
             {
                 if (_engine != null) return;
 
-                var engine = new Engine(options =>
+                engine = new Engine(options =>
                 {
                     options.LimitRecursion(256);
                     options.TimeoutInterval(TimeSpan.FromSeconds(30));
@@ -64,7 +65,7 @@ namespace DirectPackageInstaller.Android
                 // The local engine was never published to _engine on failure.
                 // Dispose that instance directly so a failed initialization does
                 // not leak a large Jint/uBO runtime.
-                engine.Dispose();
+                engine?.Dispose();
                 throw;
             }
             finally
