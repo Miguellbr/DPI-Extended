@@ -4,6 +4,9 @@ using Android.OS;
 using Android.Webkit;
 using Android.Widget;
 using Android.Views;
+using Android.Graphics;
+using Android.Graphics.Drawables;
+using Android.Views.InputMethods;
 using Android.Content;
 using Java.Interop;
 
@@ -30,29 +33,59 @@ namespace DirectPackageInstaller.Android
         {
             base.OnCreate(savedInstanceState);
 
-            var root = new LinearLayout(this) { Orientation = Orientation.Vertical };
-            var bar = new LinearLayout(this) { Orientation = Orientation.Horizontal };
+            var root = new LinearLayout(this)
+            {
+                Orientation = Orientation.Vertical,
+                Background = new ColorDrawable(Color.ParseColor("#101114"))
+            };
 
-            _back = new Button(this) { Text = "←" };
-            _forward = new Button(this) { Text = "→" };
-            _refresh = new Button(this) { Text = "↻" };
-            _ublock = new Button(this) { Text = "🛡 ON" };
+            // Compact browser chrome: navigation controls on the first row,
+            // then a rounded omnibox that doubles as URL bar + Google search.
+            var toolbar = new LinearLayout(this)
+            {
+                Orientation = Orientation.Horizontal,
+                Gravity = GravityFlags.CenterVertical
+            };
+            toolbar.SetPadding(10, 8, 10, 4);
 
-            _address = new EditText(this) { Text = Intent?.DataString ?? "https://" };
+            _back = MakeToolButton("‹");
+            _forward = MakeToolButton("›");
+            _refresh = MakeToolButton("↻");
+            _ublock = MakeToolButton("🛡 ON");
+            var use = MakeToolButton("Use");
+
+            toolbar.AddView(_back);
+            toolbar.AddView(_forward);
+            toolbar.AddView(_refresh);
+            toolbar.AddView(_ublock);
+            toolbar.AddView(use);
+            root.AddView(toolbar);
+
+            var addressRow = new LinearLayout(this)
+            {
+                Orientation = Orientation.Horizontal,
+                Gravity = GravityFlags.CenterVertical
+            };
+            addressRow.SetPadding(10, 2, 10, 8);
+
+            _address = new EditText(this)
+            {
+                Text = Intent?.DataString ?? "",
+                Hint = "Pesquisar ou digitar URL",
+                TextColor = Color.ParseColor("#F1F3F4"),
+                HintTextColor = Color.ParseColor("#9AA0A6"),
+                TextSize = 15
+            };
             _address.SetSingleLine(true);
-            _address.LayoutParameters = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, 1);
+            _address.SetPadding(18, 0, 14, 0);
+            _address.Background = RoundedBackground("#202124", "#3C4043", 22);
+            _address.LayoutParameters = new LinearLayout.LayoutParams(0, 52, 1);
+            addressRow.AddView(_address);
 
-            var go = new Button(this) { Text = "Go" };
-            var use = new Button(this) { Text = "Use" };
-
-            bar.AddView(_back);
-            bar.AddView(_forward);
-            bar.AddView(_refresh);
-            bar.AddView(_address);
-            bar.AddView(go);
-            bar.AddView(_ublock);
-            bar.AddView(use);
-            root.AddView(bar);
+            var search = MakeToolButton("⌕");
+            search.SetContentDescription("Pesquisar");
+            addressRow.AddView(search);
+            root.AddView(addressRow);
 
             _webView = new WebView(this);
             _webView.Settings.JavaScriptEnabled = true;
@@ -67,7 +100,15 @@ namespace DirectPackageInstaller.Android
 
             SetContentView(root);
 
-            go.Click += (_, _) => Navigate();
+            search.Click += (_, _) => Navigate();
+            _address.EditorAction += (_, e) =>
+            {
+                if (e.ActionId == ImeAction.Search || e.ActionId == ImeAction.Go || e.ActionId == ImeAction.Done)
+                {
+                    Navigate();
+                    e.Handled = true;
+                }
+            };
             _back.Click += (_, _) => { if (_webView.CanGoBack()) _webView.GoBack(); };
             _forward.Click += (_, _) => { if (_webView.CanGoForward()) _webView.GoForward(); };
             _refresh.Click += (_, _) => _webView.Reload();
@@ -113,15 +154,53 @@ namespace DirectPackageInstaller.Android
 
         private void Navigate()
         {
-            var url = _address.Text?.Trim();
-            if (string.IsNullOrWhiteSpace(url)) return;
+            var input = _address.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(input)) return;
 
-            if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
-                !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-                url = "https://" + url;
+            string url;
+            if (Uri.TryCreate(input, UriKind.Absolute, out var parsed) &&
+                (string.Equals(parsed.Scheme, "http", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(parsed.Scheme, "https", StringComparison.OrdinalIgnoreCase)))
+            {
+                url = input;
+            }
+            else if (input.Contains(".") && !input.Contains(" "))
+            {
+                url = "https://" + input;
+            }
+            else
+            {
+                url = "https://www.google.com/search?q=" + Uri.EscapeDataString(input);
+            }
 
             _address.Text = url;
             _webView.LoadUrl(url);
+            _address.ClearFocus();
+        }
+
+        private Button MakeToolButton(string text)
+        {
+            var button = new Button(this)
+            {
+                Text = text,
+                TextSize = 13,
+                TextColor = Color.ParseColor("#E8EAED"),
+                Background = RoundedBackground("#202124", "#202124", 18)
+            };
+            button.SetAllCaps(false);
+            button.SetPadding(10, 0, 10, 0);
+            button.LayoutParameters = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WrapContent, 46) { RightMargin = 5 };
+            return button;
+        }
+
+        private static GradientDrawable RoundedBackground(string fill, string stroke, int radius)
+        {
+            var drawable = new GradientDrawable();
+            drawable.SetColor(Color.ParseColor(fill));
+            drawable.SetCornerRadius(radius);
+            drawable.SetStroke(1, Color.ParseColor(stroke));
+            return drawable;
         }
 
         private bool IsBlocked(string? url, string type = "other") => _uBlockEnabled && _uBlock.IsBlocked(url, _currentPageUrl, type);
