@@ -44,8 +44,8 @@ namespace DirectPackageInstaller.Android
             var toolbar = new LinearLayout(this)
             {
                 Orientation = Orientation.Horizontal,
-                Gravity = GravityFlags.CenterVertical
             };
+            toolbar.SetGravity(GravityFlags.CenterVertical);
             toolbar.SetPadding(10, 8, 10, 4);
 
             _back = MakeToolButton("‹");
@@ -64,8 +64,8 @@ namespace DirectPackageInstaller.Android
             var addressRow = new LinearLayout(this)
             {
                 Orientation = Orientation.Horizontal,
-                Gravity = GravityFlags.CenterVertical
             };
+            addressRow.SetGravity(GravityFlags.CenterVertical);
             addressRow.SetPadding(10, 2, 10, 8);
 
             _address = new EditText(this)
@@ -76,6 +76,8 @@ namespace DirectPackageInstaller.Android
                 HintTextColor = Color.ParseColor("#9AA0A6"),
                 TextSize = 15
             };
+            _address.SetTextColor(Color.ParseColor("#F1F3F4"));
+            _address.SetHintTextColor(Color.ParseColor("#9AA0A6"));
             _address.SetSingleLine(true);
             _address.SetPadding(18, 0, 14, 0);
             _address.Background = RoundedBackground("#202124", "#3C4043", 22);
@@ -83,7 +85,7 @@ namespace DirectPackageInstaller.Android
             addressRow.AddView(_address);
 
             var search = MakeToolButton("⌕");
-            search.SetContentDescription("Pesquisar");
+            search.ContentDescription = "Pesquisar";
             addressRow.AddView(search);
             root.AddView(addressRow);
 
@@ -184,10 +186,10 @@ namespace DirectPackageInstaller.Android
             {
                 Text = text,
                 TextSize = 13,
-                TextColor = Color.ParseColor("#E8EAED"),
                 Background = RoundedBackground("#202124", "#202124", 18)
             };
             button.SetAllCaps(false);
+            button.SetTextColor(Color.ParseColor("#E8EAED"));
             button.SetPadding(10, 0, 10, 0);
             button.LayoutParameters = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WrapContent, 46) { RightMargin = 5 };
