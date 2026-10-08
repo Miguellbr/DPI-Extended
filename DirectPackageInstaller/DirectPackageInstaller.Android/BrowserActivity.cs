@@ -393,6 +393,7 @@ namespace DirectPackageInstaller.Android
             {
                 _webView?.StopLoading();
                 _webView?.Destroy();
+                _uBlock.Dispose();
             }
             catch { }
             base.OnDestroy();
