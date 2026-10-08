@@ -72,8 +72,6 @@ namespace DirectPackageInstaller.Android
             {
                 Text = Intent?.DataString ?? "",
                 Hint = "Pesquisar ou digitar URL",
-                TextColor = Color.ParseColor("#F1F3F4"),
-                HintTextColor = Color.ParseColor("#9AA0A6"),
                 TextSize = 15
             };
             _address.SetTextColor(Color.ParseColor("#F1F3F4"));
