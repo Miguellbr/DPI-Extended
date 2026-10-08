@@ -61,7 +61,10 @@ namespace DirectPackageInstaller.Android
             }
             catch
             {
-                engineDispose(_engine);
+                // The local engine was never published to _engine on failure.
+                // Dispose that instance directly so a failed initialization does
+                // not leak a large Jint/uBO runtime.
+                engine.Dispose();
                 throw;
             }
             finally
@@ -108,11 +111,6 @@ namespace DirectPackageInstaller.Android
             {
                 return false;
             }
-        }
-
-        private static void engineDispose(Engine? engine)
-        {
-            engine?.Dispose();
         }
 
         private static async Task<List<Dictionary<string, string>>> FetchListsAsync()
