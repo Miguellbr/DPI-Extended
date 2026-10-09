@@ -13,6 +13,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Threading;
 using LibOrbisPkg.PKG;
 using SharpCompress.Archives;
