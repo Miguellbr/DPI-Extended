@@ -73,7 +73,7 @@ O DPI original suporta links diretos e serviços como AllDebrid, RealDebrid, Deb
 
 ## Instalação e releases
 
-Baixe a versão mais recente pela página de Releases do GitHub. Windows, Linux e Android usam o runtime .NET 8 de acordo com o pacote do alvo; as builds do macOS são autocontidas.
+Baixe a versão mais recente pela [página de Releases do GitHub](https://github.com/Miguellbr/DPI-Extended/releases/latest). Windows, Linux e Android usam o runtime .NET 8 de acordo com o pacote do alvo; as builds do macOS são autocontidas.
 
 Confira os assets da release para saber quais arquiteturas Android estão sendo publicadas atualmente pelo CI, em vez de assumir que todas as arquiteturas históricas continuam disponíveis.
 
