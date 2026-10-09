@@ -94,7 +94,8 @@ namespace DirectPackageInstaller
         public static async Task<bool> EnsureFreeSpace(Stream? PKGStream, DecompressorHelperStream[]? DecompressorStreams, Source InputType)
         {
             bool AllocationRequired = InputType.HasFlag(Source.DiskCache) || InputType.HasFlag(Source.RAR) ||
-                                      InputType.HasFlag(Source.SevenZip) || InputType.HasFlag(Source.Segmented);
+                                      InputType.HasFlag(Source.SevenZip) ||
+                                      (InputType.HasFlag(Source.Segmented) && InputType.HasFlag(Source.JSON));
 
             if (!AllocationRequired || PKGStream == null)
                 return true;
