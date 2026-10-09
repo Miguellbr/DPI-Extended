@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DirectPackageInstaller
@@ -113,6 +114,25 @@ namespace DirectPackageInstaller
 
             Pos += Readed;
             return Readed;
+        }
+
+        public override async Task<int> ReadAsync(
+            byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            if (buffer == null)
+                throw new ArgumentNullException(nameof(buffer));
+            if (offset < 0 || count < 0 || offset > buffer.Length - count)
+                throw new ArgumentOutOfRangeException();
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (count == 0 || Pos >= Len)
+                return 0;
+
+            count = (int)Math.Min(count, Len - Pos);
+            Base.Position = FilePos + Pos;
+            int read = await Base.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+            Pos += read;
+            return read;
         }
 
         /// <summary>
