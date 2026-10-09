@@ -132,6 +132,7 @@ namespace DirectPackageInstaller.Tasks
             }
             finally
             {
+                This.Running = false;
                 Tasks[This.Url] = This;
             }
         }
@@ -198,7 +199,7 @@ namespace DirectPackageInstaller.Tasks
 
         public double Progress => ((double)SafeReadyLength / SafeLength) * 100.0;
 
-        public bool Failed => !Running && SafeReadyLength > 0 && SafeReadyLength < SafeLength;
+        public bool Failed => Error != null;
 
         public Exception Error { get; internal set; }
     }
