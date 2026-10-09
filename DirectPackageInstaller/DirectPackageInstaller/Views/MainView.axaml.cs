@@ -111,6 +111,15 @@ namespace DirectPackageInstaller.Views
             btnExit = this.Find<MenuItem>("btnExit");
             btnLoad = this.Find<Button>("btnLoad");
             var btnBrowser = this.Find<MenuItem>("btnBrowser");
+            var btnViewLogs = this.Find<MenuItem>("btnViewLogs");
+            btnViewLogs.Click += async (_, _) =>
+            {
+                var logsWindow = new DiagnosticLogsWindow();
+                if (Parent != null)
+                    await logsWindow.ShowDialog(Parent);
+                else
+                    logsWindow.Show();
+            };
             
             btnInstallAll.Click += BtnInstallAllOnClick;
             btnRestartServer.Click += RestartServer_OnClick;
