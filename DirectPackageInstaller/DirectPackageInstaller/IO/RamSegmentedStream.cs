@@ -94,34 +94,64 @@ namespace DirectPackageInstaller.IO
             await _slots.WaitAsync(_cts.Token).ConfigureAwait(false);
             try
             {
-                using var source = _openSegment();
-                using var virtualStream = new VirtualStream(source, segment.Offset, segment.Length);
+                Exception? lastError = null;
 
-                var data = new byte[segment.Length];
-                var readTotal = 0;
-
-                while (readTotal < data.Length)
+                // Retry transient host/network failures before marking the segment failed.
+                for (var attempt = 1; attempt <= 3; attempt++)
                 {
-                    _cts.Token.ThrowIfCancellationRequested();
+                    try
+                    {
+                        _cts.Token.ThrowIfCancellationRequested();
+                        using var source = _openSegment();
+                        using var virtualStream = new VirtualStream(source, segment.Offset, segment.Length);
 
-                    var read = await virtualStream.ReadAsync(
-                        data, readTotal, data.Length - readTotal, _cts.Token).ConfigureAwait(false);
+                        var data = new byte[segment.Length];
+                        var readTotal = 0;
 
-                    if (read <= 0)
-                        throw new EndOfStreamException(
-                            $"Remote stream ended at {segment.Offset + readTotal} of {segment.Offset + segment.Length}");
+                        while (readTotal < data.Length)
+                        {
+                            _cts.Token.ThrowIfCancellationRequested();
+                            var read = await virtualStream.ReadAsync(
+                                data, readTotal, data.Length - readTotal, _cts.Token).ConfigureAwait(false);
 
-                    readTotal += read;
+                            if (read <= 0)
+                                throw new EndOfStreamException(
+                                    $"Remote stream ended at {segment.Offset + readTotal} of {segment.Offset + segment.Length}");
+
+                            readTotal += read;
+                        }
+
+                        lock (_lock)
+                        {
+                            segment.Data = data;
+                            segment.Error = null;
+                            segment.LastUse = DateTime.UtcNow;
+                            EvictUnsafe(segment.Offset);
+                        }
+
+                        DiagnosticLog.Info($"RAM segment loaded: offset={segment.Offset}, bytes={data.Length}, cached={CachedBytes} bytes.");
+                        return;
+                    }
+                    catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        lastError = ex;
+                        DiagnosticLog.Error($"RAM segment attempt {attempt}/3 failed: offset={segment.Offset}, length={segment.Length}; {ex.Message}");
+                        if (attempt < 3)
+                            await Task.Delay(attempt * 300, _cts.Token).ConfigureAwait(false);
+                    }
                 }
 
                 lock (_lock)
-                {
-                    segment.Data = data;
-                    segment.Error = null;
-                    segment.LastUse = DateTime.UtcNow;
-                    EvictUnsafe(segment.Offset);
-                }
-                DiagnosticLog.Info($"RAM segment loaded: offset={segment.Offset}, bytes={data.Length}, cached={CachedBytes} bytes.");
+                    segment.Error = lastError ?? new IOException("Segment download failed after retries.");
+            }
+            catch (OperationCanceledException)
+            {
+                lock (_lock)
+                    segment.Error = new OperationCanceledException("Segment download was cancelled.");
             }
             catch (Exception ex)
             {
