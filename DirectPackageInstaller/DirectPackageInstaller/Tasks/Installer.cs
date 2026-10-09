@@ -168,16 +168,21 @@ namespace DirectPackageInstaller.Tasks
                 case Source.URL | Source.Segmented:
                     CanSplit = !InputType.HasFlag(Source.DiskCache);
 
+                    DiagnosticLog.Info($"PKG preparation started. Source mode: {InputType}; preload target: {LastResource} bytes.");
                     var CacheTask = Downloader.CreateTask(URL);
 
                     if (CacheTask.Error != null)
+                    {
+                        DiagnosticLog.Error($"PKG downloader returned an error: {CacheTask.Error.Message}");
                         throw new AbortException($"Failed to initialize download: {CacheTask.Error.Message}");
+                    }
 
                     // RAM-backed streams are lazy and expose read position, not downloaded bytes.
                     // Waiting for SafeReadyLength here deadlocks at 0 before the PS4 starts reading.
                     // Let the first range load on demand; disk-backed SegmentedStream keeps its preload.
                     if (CacheTask.SegmentedRead is not RamSegmentedStream)
                     {
+                        DiagnosticLog.Info("Disk-backed preload started.");
                         OriStatus = GetStatus();
                         while (CacheTask.SafeReadyLength < LastResource)
                         {
@@ -188,6 +193,11 @@ namespace DirectPackageInstaller.Tasks
                             await Task.Delay(100);
                         }
                         await SetStatus(OriStatus);
+                        DiagnosticLog.Info($"Disk-backed preload completed: {CacheTask.SafeReadyLength}/{LastResource} bytes.");
+                    }
+                    else
+                    {
+                        DiagnosticLog.Info($"RAM-backed stream initialized lazily; preload wait skipped. Size: {CacheTask.SafeLength} bytes.");
                     }
 
                     URL = $"http://{Config.PCIP}:{ServerPort}/cache/?b64={Convert.ToBase64String(Encoding.UTF8.GetBytes(URL))}";
