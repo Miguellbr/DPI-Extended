@@ -1,4 +1,5 @@
 using DirectPackageInstaller.IO;
+using DirectPackageInstaller.Others;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,6 +14,7 @@ namespace DirectPackageInstaller.Tasks
 
         public static DownloaderTask CreateTask(string URL, Stream Input = null)
         {
+            DiagnosticLog.Info($"Downloader requested (input stream: {Input != null}). Source: {URL}");
             if (Tasks.ContainsKey(URL))
             {
                 var OldTask = Tasks[URL];
@@ -118,6 +120,7 @@ namespace DirectPackageInstaller.Tasks
                 else
                 {
                     // Diskless path: only a bounded RAM window is retained.
+                    DiagnosticLog.Info($"Creating RAM segmented stream (segment=4 MiB, cache=8 segments, concurrency=4): {This.Url}");
                     This.SegmentedRead = new RamSegmentedStream(
                         () => new FileHostStream(This.Url),
                         segmentSize: 4 * 1024 * 1024,
@@ -125,10 +128,12 @@ namespace DirectPackageInstaller.Tasks
                         concurrency: 4);
                 }
                 This.OpenRead = () => new SegmentedStreamReader(This.SegmentedRead);
+                DiagnosticLog.Info($"Segmented stream ready; remote size: {This.SegmentedRead.Length} bytes.");
             }
             catch (Exception ex)
             {
                 This.Error = ex;
+                DiagnosticLog.Error($"Segmented downloader initialization failed: {ex.Message}");
             }
             finally
             {
