@@ -114,6 +114,13 @@ namespace DirectPackageInstaller.Views
             var btnViewLogs = this.Find<MenuItem>("btnViewLogs");
             btnViewLogs.Click += async (_, _) =>
             {
+                // Android uses Avalonia's single-view lifetime; opening a second Window can crash the app.
+                if (App.IsAndroid)
+                {
+                    ShowLogsInCurrentView();
+                    return;
+                }
+
                 var logsWindow = new DiagnosticLogsWindow();
                 if (Parent != null)
                     await logsWindow.ShowDialog(Parent);
@@ -152,6 +159,90 @@ namespace DirectPackageInstaller.Views
 
             btnDHCPService.IsVisible = App.IsWindows;
         }
+        private void ShowLogsInCurrentView()
+        {
+            var originalContent = Content;
+            var logText = new TextBox
+            {
+                IsReadOnly = true,
+                AcceptsReturn = true,
+                TextWrapping = Avalonia.Media.TextWrapping.NoWrap,
+                FontFamily = new Avalonia.Media.FontFamily("monospace")
+            };
+
+            void RefreshLogs() => logText.Text = DiagnosticLog.GetAll();
+            void ReturnToMainView()
+            {
+                DiagnosticLog.Changed -= RefreshLogs;
+                Content = originalContent;
+            }
+
+            var buttons = new WrapPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+
+            Button MakeLogButton(string label, Action action)
+            {
+                var button = new Button
+                {
+                    Content = label,
+                    Padding = new Thickness(10, 7),
+                    Margin = new Thickness(0, 0, 6, 6)
+                };
+                button.Click += (_, _) =>
+                {
+                    try { action(); }
+                    catch (Exception ex) { DiagnosticLog.Error($"Log screen action failed: {ex.Message}"); }
+                };
+                return button;
+            }
+
+            buttons.Children.Add(MakeLogButton("Copy all", () =>
+            {
+                var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+                if (clipboard == null)
+                    throw new InvalidOperationException("Clipboard is unavailable.");
+                _ = clipboard.SetTextAsync(DiagnosticLog.GetAll());
+            }));
+            buttons.Children.Add(MakeLogButton("Copy errors", () =>
+            {
+                var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+                if (clipboard == null)
+                    throw new InvalidOperationException("Clipboard is unavailable.");
+                var errors = DiagnosticLog.GetErrors();
+                _ = clipboard.SetTextAsync(string.IsNullOrWhiteSpace(errors) ? "No warnings or errors recorded." : errors);
+            }));
+            buttons.Children.Add(MakeLogButton("Clear", () => DiagnosticLog.Clear()));
+            buttons.Children.Add(MakeLogButton("Export .txt", () =>
+            {
+                var path = Path.Combine(App.WorkingDirectory, "DPI-Extended-logs.txt");
+                File.WriteAllText(path, DiagnosticLog.GetAll());
+                DiagnosticLog.Info($"Logs exported to {path}");
+            }));
+            buttons.Children.Add(MakeLogButton("Back", ReturnToMainView));
+
+            var layout = new Grid
+            {
+                Margin = new Thickness(10),
+                RowDefinitions = new RowDefinitions
+                {
+                    new RowDefinition(GridLength.Auto),
+                    new RowDefinition(1, GridUnitType.Star)
+                }
+            };
+            layout.Children.Add(buttons);
+            var logRow = new Grid { Row = 1 };
+            logRow.Children.Add(logText);
+            Grid.SetRow(logRow, 1);
+            layout.Children.Add(logRow);
+
+            Content = layout;
+            DiagnosticLog.Changed += RefreshLogs;
+            RefreshLogs();
+        }
+
         public async Task OnShown(MainWindow? Parent)
         {
             if (Model == null)
