@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DirectPackageInstaller.Others;
 
 namespace DirectPackageInstaller.IO
 {
@@ -89,6 +90,7 @@ namespace DirectPackageInstaller.IO
 
         private async Task LoadSegmentAsync(Segment segment)
         {
+            DiagnosticLog.Info($"RAM segment request started: offset={segment.Offset}, length={segment.Length} bytes.");
             await _slots.WaitAsync(_cts.Token).ConfigureAwait(false);
             try
             {
@@ -119,11 +121,13 @@ namespace DirectPackageInstaller.IO
                     segment.LastUse = DateTime.UtcNow;
                     EvictUnsafe(segment.Offset);
                 }
+                DiagnosticLog.Info($"RAM segment loaded: offset={segment.Offset}, bytes={data.Length}, cached={CachedBytes} bytes.");
             }
             catch (Exception ex)
             {
                 lock (_lock)
                     segment.Error = ex;
+                DiagnosticLog.Error($"RAM segment failed: offset={segment.Offset}, length={segment.Length}; {ex.Message}");
             }
             finally
             {
