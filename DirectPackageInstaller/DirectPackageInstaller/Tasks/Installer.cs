@@ -169,14 +169,26 @@ namespace DirectPackageInstaller.Tasks
                     CanSplit = !InputType.HasFlag(Source.DiskCache);
 
                     var CacheTask = Downloader.CreateTask(URL);
-                    
-                    OriStatus = GetStatus();
-                    while (CacheTask.SafeReadyLength < LastResource)
+
+                    if (CacheTask.Error != null)
+                        throw new AbortException($"Failed to initialize download: {CacheTask.Error.Message}");
+
+                    // RAM-backed streams are lazy and expose read position, not downloaded bytes.
+                    // Waiting for SafeReadyLength here deadlocks at 0 before the PS4 starts reading.
+                    // Let the first range load on demand; disk-backed SegmentedStream keeps its preload.
+                    if (CacheTask.SegmentedRead is not RamSegmentedStream)
                     {
-                        await SetStatus($"Preloading PKG... ({(double)(CacheTask.SafeReadyLength) / LastResource:P})");
-                        await Task.Delay(100);
+                        OriStatus = GetStatus();
+                        while (CacheTask.SafeReadyLength < LastResource)
+                        {
+                            if (CacheTask.Error != null || !CacheTask.Running)
+                                throw new AbortException($"PKG preload stopped before it was ready: {CacheTask.Error?.Message ?? "download task stopped"}");
+
+                            await SetStatus($"Preloading PKG... ({(double)(CacheTask.SafeReadyLength) / LastResource:P})");
+                            await Task.Delay(100);
+                        }
+                        await SetStatus(OriStatus);
                     }
-                    await SetStatus(OriStatus);
 
                     URL = $"http://{Config.PCIP}:{ServerPort}/cache/?b64={Convert.ToBase64String(Encoding.UTF8.GetBytes(URL))}";
                     break;
