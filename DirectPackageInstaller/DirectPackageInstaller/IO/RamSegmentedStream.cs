@@ -32,6 +32,7 @@ namespace DirectPackageInstaller.IO
         private readonly object _lock = new();
         private readonly Dictionary<long, Segment> _segments = new();
         private readonly SemaphoreSlim _slots;
+        private readonly SemaphoreSlim _readGate = new(1, 1);
         private readonly CancellationTokenSource _cts = new();
         private long _position;
 
@@ -215,6 +216,38 @@ namespace DirectPackageInstaller.IO
             }
         }
 
+        private async Task<byte[]> GetSegmentDataAsync(long offset, CancellationToken cancellationToken)
+        {
+            var segment = GetOrCreate(offset);
+
+            while (true)
+            {
+                Task? loading;
+                Exception? error;
+                byte[]? data;
+
+                lock (_lock)
+                {
+                    loading = segment.Loading;
+                    error = segment.Error;
+                    data = segment.Data;
+                    segment.LastUse = DateTime.UtcNow;
+                }
+
+                if (data != null)
+                    return data;
+
+                if (error != null)
+                    throw new IOException($"Failed to download range at {offset}", error);
+
+                cancellationToken.ThrowIfCancellationRequested();
+                if (loading != null)
+                    await loading.WaitAsync(cancellationToken).ConfigureAwait(false);
+                else
+                    await Task.Yield();
+            }
+        }
+
         private void Prefetch(long offset)
         {
             if (offset < 0 || offset >= TotalSize)
@@ -240,9 +273,65 @@ namespace DirectPackageInstaller.IO
 
         public override int Read(byte[] buffer, int offset, int count)
         {
+            _readGate.Wait();
+            try
+            {
+                return ReadCore(buffer, offset, count);
+            }
+            finally
+            {
+                _readGate.Release();
+            }
+        }
+
+        public override async Task<int> ReadAsync(
+            byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
             if (buffer == null)
                 throw new ArgumentNullException(nameof(buffer));
-            if (offset < 0 || count < 0 || offset + count > buffer.Length)
+            if (offset < 0 || count < 0 || offset > buffer.Length - count)
+                throw new ArgumentOutOfRangeException();
+
+            await _readGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                if (count == 0 || _position >= TotalSize)
+                    return 0;
+
+                count = (int)Math.Min(count, TotalSize - _position);
+                var remaining = count;
+                var destination = offset;
+
+                while (remaining > 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var segmentOffset = (_position / _segmentSize) * _segmentSize;
+                    var data = await GetSegmentDataAsync(segmentOffset, cancellationToken).ConfigureAwait(false);
+                    var within = (int)(_position - segmentOffset);
+                    var available = Math.Min(remaining, data.Length - within);
+
+                    Buffer.BlockCopy(data, within, buffer, destination, available);
+
+                    _position += available;
+                    destination += available;
+                    remaining -= available;
+
+                    Prefetch(segmentOffset + _segmentSize);
+                }
+
+                return count;
+            }
+            finally
+            {
+                _readGate.Release();
+            }
+        }
+
+        private int ReadCore(byte[] buffer, int offset, int count)
+        {
+            if (buffer == null)
+                throw new ArgumentNullException(nameof(buffer));
+            if (offset < 0 || count < 0 || offset > buffer.Length - count)
                 throw new ArgumentOutOfRangeException();
 
             if (count == 0 || _position >= TotalSize)
@@ -273,19 +362,27 @@ namespace DirectPackageInstaller.IO
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            var target = origin switch
+            _readGate.Wait();
+            try
             {
-                SeekOrigin.Begin => offset,
-                SeekOrigin.Current => _position + offset,
-                SeekOrigin.End => TotalSize + offset,
-                _ => throw new ArgumentOutOfRangeException(nameof(origin))
-            };
+                var target = origin switch
+                {
+                    SeekOrigin.Begin => offset,
+                    SeekOrigin.Current => _position + offset,
+                    SeekOrigin.End => TotalSize + offset,
+                    _ => throw new ArgumentOutOfRangeException(nameof(origin))
+                };
 
-            if (target < 0 || target > TotalSize)
-                throw new IOException("Invalid stream position");
+                if (target < 0 || target > TotalSize)
+                    throw new IOException("Invalid stream position");
 
-            _position = target;
-            return _position;
+                _position = target;
+                return _position;
+            }
+            finally
+            {
+                _readGate.Release();
+            }
         }
 
         public override bool CanRead => true;
