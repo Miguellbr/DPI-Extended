@@ -170,7 +170,11 @@ namespace DirectPackageInstaller.Views
                 FontFamily = new Avalonia.Media.FontFamily("monospace")
             };
 
-            void RefreshLogs() => logText.Text = DiagnosticLog.GetAll();
+            void RefreshLogs()
+            {
+                var snapshot = DiagnosticLog.GetAll();
+                Dispatcher.UIThread.Post(() => logText.Text = snapshot);
+            }
             void ReturnToMainView()
             {
                 DiagnosticLog.Changed -= RefreshLogs;
@@ -233,7 +237,7 @@ namespace DirectPackageInstaller.Views
                 }
             };
             layout.Children.Add(buttons);
-            var logRow = new Grid { Row = 1 };
+            var logRow = new Grid();
             logRow.Children.Add(logText);
             Grid.SetRow(logRow, 1);
             layout.Children.Add(logRow);
